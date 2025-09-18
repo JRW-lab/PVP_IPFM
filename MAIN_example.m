@@ -75,7 +75,7 @@ switch profile_sel
             struct("hypovolemic", "H")
             };
         model_parameters = struct(...
-            'window_duration', 1, ...
+            'window_duration', 10, ...
             'frequency_limit', 30, ...
             'alpha', 0.5, ...
             'probability_cutoff', 0.5, ...
@@ -86,11 +86,11 @@ switch profile_sel
         title_vars = ["dataset", "type_sel"];
         if data_view == "figure"
             line_configs = {
-                struct('signal_sel', "raw_signal", 'window_duration', 5)
+                % struct('signal_sel', "raw_signal", 'window_duration', 5)
                 struct('signal_sel', "raw_signal", 'window_duration', 10)
-                struct('signal_sel', "IPFM_signal", 'window_duration', 5)
+                % struct('signal_sel', "IPFM_signal", 'window_duration', 5)
                 struct('signal_sel', "IPFM_signal", 'window_duration', 10)
-                struct('signal_sel', "EHR_signal", 'window_duration', 5)
+                % struct('signal_sel', "EHR_signal", 'window_duration', 5)
                 struct('signal_sel', "EHR_signal", 'window_duration', 10)
                 };
             legend_vec = {

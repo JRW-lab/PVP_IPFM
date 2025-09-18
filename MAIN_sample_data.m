@@ -452,17 +452,16 @@ end
 fprintf("\nSample canonical correlations:\n")
 disp(r_tbl)
 
-%% KS Two-sample Test
+%% KS Two-sample Test on Signal
 
 % KS Settings
 f_range = 0:1/window_duration:frequency_limit-1/window_duration;
-step = 1;
-corrected_range = 1:step:length(f_range);
 
 % Set up figure
 figure(4)
 hold on
 
+p_vals = cell(length(signal_sel),1);
 for j = 1:length(signal_sel)
 
     % Select data for each window
@@ -484,14 +483,15 @@ for j = 1:length(signal_sel)
     % Create new frequency-separated samples
     resu_block = cell2mat(fwindows_null(:,j));
     hypo_block = cell2mat(fwindows_hypo(:,j));
+
     resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
     hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
 
     % Test the samples using KS two-sample test
-    [~,p_vals] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+    [~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
 
     % Plot result of KS test
-    plot(f_range(corrected_range), log10(p_vals(corrected_range)), Color=linecolor,LineStyle=linestyle,LineWidth=line_val);
+    plot(f_range, log10(p_vals{j}), Color=linecolor,LineStyle=linestyle,LineWidth=line_val);
 
 end
 
@@ -502,3 +502,60 @@ ylabel("p-values (log_{10})")
 ylim([-350 0])
 set(gca, 'FontSize', font_val);
 legend("Raw","Synth.","EHR",Location="southeast")
+
+%% KS Two-sample Test on Sample Covariance Matrices
+
+% KS Settings
+f_range = 0:1/window_duration:frequency_limit-1/window_duration;
+
+p_vals = cell(length(signal_sel),1);
+for j = 1:length(signal_sel)
+
+    % Select data for each window
+    switch j
+        case 1
+            sig_name = "raw";
+            linecolor = "#da1e28";
+            linestyle = "-";
+            linemarker = "o";
+        case 2
+            sig_name = "IPFM-synth.";
+            linecolor = "#0f62fe";
+            linestyle = "-";
+            linemarker = "^";
+        case 3
+            sig_name = "EHR";
+            linecolor = "#198038";
+            linestyle = "-";
+            linemarker = "*";
+    end
+
+    % Create new frequency-separated samples
+    resu_block = cell2mat(fwindows_null(:,j));
+    hypo_block = cell2mat(fwindows_hypo(:,j));
+
+    resu_block_new = zeros(size(resu_block,1),size(resu_block,2)^2);
+    hypo_block_new = zeros(size(hypo_block,1),size(hypo_block,2)^2);
+    for i = 1:size(resu_block,1)
+        resu_cov = resu_block(i,:)' * resu_block(i,:);
+        resu_block_new(i,:) = resu_cov(:)';
+    end
+    for i = 1:size(hypo_block,1)
+        hypo_cov = hypo_block(i,:)' * hypo_block(i,:);
+        hypo_block_new(i,:) = hypo_cov(:)';
+    end
+    resu_block = resu_block_new;
+    hypo_block = hypo_block_new;
+
+    resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
+    hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
+
+    % Test the samples using KS two-sample test
+    [~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+
+    % Plot result of KS test
+    figure(10+j)
+    imagesc(abs(log10(reshape(p_vals{j},window_duration*frequency_limit,window_duration*frequency_limit))))
+    title(sprintf("KS Test on %s Covariance Matrices",sig_name))
+
+end
