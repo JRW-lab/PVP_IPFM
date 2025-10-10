@@ -1,5 +1,9 @@
 function local_write(excel_path,parameters,new_frames,metrics_add)
 
+% Settings
+maxRetries = 50;      % Max number of attempts
+waitTime   = 30;      % Seconds to wait between retries
+
 % Function setup
 [paramsJSON,paramHash] = jsonencode_sorted(parameters);
 
@@ -89,4 +93,13 @@ else
 end
 
 % Save table
-writetable(T, excel_path);
+for attempt = 1:maxRetries
+    try
+        writetable(T, excel_path);
+    catch ME
+        fprintf('❌ Attempt %d failed: %s\n', attempt, ME.message);
+    end
+
+    % Wait before retry
+    pause(randi(waitTime));
+end

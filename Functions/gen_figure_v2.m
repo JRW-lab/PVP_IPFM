@@ -1,13 +1,22 @@
 function gen_figure_v2(save_data,conn,table_name,result_parameters_hashes,line_configs,figure_data)
 
 % Settings
-render_title = false;
-figures_folder = 'Figures';
-loc = "northwest";
 line_val = 2;
 mark_val = 10;
 font_val = 16;
-ylim_vec = [0.5 1];
+
+% Import Parameters
+figures_folder = 'Figures';
+loc = figure_data.legend_loc;
+ylim_vec = figure_data.ylim_vec;
+data_type = figure_data.data_type;
+primary_var = figure_data.primary_var;
+primary_vals = figure_data.primary_vals;
+legend_vec = figure_data.legend_vec;
+line_styles = figure_data.line_styles;
+line_colors = figure_data.line_colors;
+save_sel = figure_data.save_sel;
+level_view = figure_data.level_view;
 
 % Load data from DB and set new frame count
 switch save_data.priority
@@ -33,17 +42,6 @@ switch save_data.priority
         end
 end
 
-% Import settings
-data_type = figure_data.data_type;
-primary_var = figure_data.primary_var;
-primary_vals = figure_data.primary_vals;
-% title_vars = figure_data.title_vars;
-legend_vec = figure_data.legend_vec;
-line_styles = figure_data.line_styles;
-line_colors = figure_data.line_colors;
-save_sel = figure_data.save_sel;
-level_view = figure_data.level_view;
-
 % Go through each settings profile
 results_mean = zeros(length(primary_vals),length(line_configs));
 results_min = zeros(length(primary_vals),length(line_configs));
@@ -55,20 +53,31 @@ for primvar_sel = 1:length(primary_vals)
         paramHash = result_parameters_hashes(primvar_sel,sel);
         sim_result = T(string(T.param_hash) == paramHash, :);
 
-        % Select data to extract
-        result_vals = zeros(size(sim_result,1),1);
-        for i = 1:size(sim_result,1)
-            metrics_loaded = jsondecode(sim_result.metrics{i});
-            result_vals(i) = metrics_loaded.(level_view).(data_type);
-        end
+        if isempty(sim_result)
+            result_vals = NaN;
 
-        % Add result to stack
-        results_mean(primvar_sel,sel) = mean(result_vals);
-        results_min(primvar_sel,sel) = min(result_vals);
-        results_max(primvar_sel,sel) = max(result_vals);
+            % Add result to stack
+            results_mean(primvar_sel,sel) = NaN;
+            results_min(primvar_sel,sel) = NaN;
+            results_max(primvar_sel,sel) = NaN;
+        else
+
+            % Select data to extract
+            result_vals = zeros(size(sim_result,1),1);
+            for i = 1:size(sim_result,1)
+                metrics_loaded = jsondecode(sim_result.metrics{i});
+                results_mean(primvar_sel,sel) = mean(metrics_loaded.(level_view).(data_type));
+            end
+
+        end
 
     end
 end
+
+% % Add result to stack
+% results_mean(primvar_sel,sel) = mean(result_vals);
+% results_min(primvar_sel,sel) = min(result_vals);
+% results_max(primvar_sel,sel) = max(result_vals);
 
 % Create folders if they don't exist
 subfolder = fullfile(figures_folder, ['/' char(data_type)]);
@@ -125,7 +134,6 @@ for i = 1:size(results_mean,2)
 end
 
 ylabel("Model Accuracy")
-% loc = "southwest";
 grid on
 ylim(ylim_vec)
 xlabel(xlabel_name)
@@ -133,35 +141,8 @@ xlim([min(primary_vals) max(primary_vals)])
 xticks(primary_vals)
 legend(legend_vec,Location=loc);
 set(gca, 'FontSize', font_val);
-
-if render_title
-    % Make title combo
-    title_vec = "";
-    for i = 1:length(title_vars)
-        if i > 1
-            title_vec = sprintf("%s, ",title_vec);
-        end
-
-        switch title_vars(i)
-            case "T"
-                title_val = default_parameters.T / 1e-6;
-                title_vec = sprintf("%s%s = %.2f",title_vec,title_vars(i),title_val);
-            otherwise
-                title_val = eval("default_parameters." + title_vars(i));
-                title_vec = sprintf("%s%s = %d",title_vec,title_vars(i),title_val);
-        end
-
-        if title_vars(i) == "EbN0"
-            title_vec = sprintf("%sdB",title_vec);
-        elseif title_vars(i) == "vel"
-            title_vec = sprintf("%s km/hr",title_vec);
-        elseif title_vars(i) == "T"
-            title_vec = sprintf("%s us",title_vec);
-        end
-
-    end
-    title(title_vec)
-end
+set(gca, 'Box', 'on');
+set(gca, 'LineWidth', line_val);
 
 % Save figure
 timestamp = datetime('now', 'Format', 'yyyyMMdd_HHmmss');

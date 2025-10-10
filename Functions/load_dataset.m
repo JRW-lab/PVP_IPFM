@@ -1,13 +1,15 @@
 function data = load_dataset(parameters)
 
-% Import parameters
+% Settings
 signal_type = "PVP";
-parameters = rmfield(parameters,"probability_cutoff");
+
+% Make parameters
 data_groups = parameters.data_groups;
 dataset = parameters.dataset;
 signal_sel = parameters.signal_sel;
 labels = parameters.labels;
 exclude_patients = parameters.exclude_patients;
+drop_rho_below = parameters.drop_rho_below;
 
 % Load lookup table and set parameters
 load_path = "Data/" + dataset + "/";
@@ -58,7 +60,10 @@ catch
                 end
 
                 % If data does not match requirement, do not load
-                if ~ismember(label_inst,labels_sel.(label_fields{k})) || ismember(lookup_table.subject_number(i),exclude_patients) || ~isequal(lookup_table.signal_type{i}, signal_type)
+                load_logic = ~ismember(label_inst,labels_sel.(label_fields{k})) || ...
+                    ismember(lookup_table.subject_number(i),exclude_patients) || ...
+                    ~isequal(lookup_table.signal_type{i}, signal_type);
+                if load_logic
                     flag = false;
                 end
 
@@ -71,11 +76,13 @@ catch
                 S = load(file_path);
 
                 % Store data
-                data_signals{j}{end+1,1} = S.data.(signal_sel);
-                data_labels{j}(end+1,1) = S.labels;
-                data_T{j}(end+1,1) = S.data.T;
-                data_rho{j}(end+1,1) = S.data.rho;
-                data_names{j}(end+1,1) = S.data.name;
+                if S.data.rho > drop_rho_below
+                    data_signals{j}{end+1,1} = S.data.(signal_sel);
+                    data_labels{j}(end+1,1) = S.labels;
+                    data_T{j}(end+1,1) = S.data.T;
+                    data_rho{j}(end+1,1) = S.data.rho;
+                    data_names{j}(end+1,1) = S.data.name;
+                end
 
             end
 

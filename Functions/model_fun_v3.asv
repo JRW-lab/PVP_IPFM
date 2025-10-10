@@ -74,11 +74,7 @@ if run_flag
     tshift = parameters.tshift;
     drop_DC_component = parameters.drop_DC_component;
     normalize_power = parameters.normalize_power;
-    try
-        randomize_training = parameters.randomize_training;
-    catch
-        randomize_training = false;
-    end
+    randomize_training = parameters.randomize_training;
 
     % Load dataset
     data = load_dataset(parameters);
@@ -158,7 +154,9 @@ if run_flag
                         patient_sigs = data_master(patient_locs);
                         detection_range = 1:length(patient_sigs);
                         if randomize_training
-                            training_locs = randperm(length(detection_range), round(length(detection_range) * training_percentage));
+                            training_locs = detection_range(rand(length(detection_range),1).' < training_percentage);
+                            if isempty(training_locs)
+                                training_locs = 1;
                         else
                             training_locs = 1:round(length(patient_sigs)*training_percentage);
                         end

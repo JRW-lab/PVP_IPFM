@@ -1,4 +1,4 @@
-function conn = mysql_login(dbname,~)
+function conn = mysql_login(dbname)
 
 % Parameters
 users = ["root","remote_user"];
@@ -10,7 +10,11 @@ driver = 'com.mysql.cj.jdbc.Driver';
 % Connect through all options
 for i = 1:length(users)
     dburl = ['jdbc:mysql://' servers(i) ':' char(string(port)) '/' dbname];
-    conn = database(dbname, users(i), password, driver, strjoin(dburl));
+    if users(i) == "root"
+        conn = database(dbname, users(i), password, driver, strjoin(dburl));
+    else
+        conn = connectWithRetry(dbname, users(i), password, driver, strjoin(dburl));
+    end
     if isopen(conn)
         break
     end

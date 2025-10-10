@@ -214,111 +214,115 @@ elseif profile_sel == 4
 end
 set(gca, 'FontSize', font_val);
 
-%% Empircal pdf
-
-% pdf settings
-if profile_sel == 1 || profile_sel == 2
-    % Set figure info
-    xlim_vec_pdf = [0 .6];
-    ylim_vec_pdf = [0 8];
-    frequency_sel =  2.3;
-elseif profile_sel == 3
-    % Set figure info
-    xlim_vec_pdf = [0 .8];
-    ylim_vec_pdf = [0 8];
-    frequency_sel =  1.2;
-elseif profile_sel == 4
-    % Set figure info
-    xlim_vec_pdf = [0 .6];
-    ylim_vec_pdf = [0 8];
-    frequency_sel =  1.6;
-end
-index = round(frequency_sel * window_duration) + 1;
-
-% Set up figure
-figure(2)
-hold on
-
-averages = zeros(3,2);
-for j = 1:length(signal_sel)
-    for k = 1:2
-
-        % Select color for signal type
-        switch j
-            case 1
-                linecolor = "#da1e28";
-            case 2
-                linecolor = "#0f62fe";
-            case 3
-                linecolor = "#198038";
-        end
-
-        % Select null/alternative hypothesis
-        switch k
-            case 1
-                linestyle = "-";
-                windows = fwindows_null(:,j);
-            case 2
-                linestyle = "--";
-                windows = fwindows_hypo(:,j);
-        end
-
-        % Create new frequency-separated samples
-        block = vertcat(windows{:});
-
-        % Plot pdf data
-        datavec_sel = block(:,index);
-        [f, xi] = ksdensity(datavec_sel, 'Support', 'positive'); % Estimate PDF using kernel density estimation
-        indices = xi >= 0;
-        xi = xi(indices);
-        f = f(indices);
-        f = f ./ trapz(xi, f);
-        plot(xi, f, Color=linecolor,linewidth=line_val,LineStyle=linestyle);
-
-        1;
-
-    end
-end
-
-% Finish figure setup
-grid on;
-ylim(ylim_vec_pdf)
-xlim(xlim_vec_pdf)
-xlabel("Signal amplitude (mmHg)")
-ylabel("Probability")
-set(gca, 'FontSize', font_val);
-if profile_sel == 1 || profile_sel == 2
-    legend("Raw, Resuscitated",...
-        "Raw, Hypovolemic",...
-        "Synth., Resuscitated",...
-        "Synth., Hypovolemic",...
-        "EHR, Resuscitated",...
-        "EHR, Hypovolemic",...
-        Location="northeast")
-elseif profile_sel == 3
-    legend("Raw, PRO",...
-        "Raw, MAC",...
-        "Synth., PRO",...
-        "Synth., MAC",...
-        "EHR, PRO",...
-        "EHR, MAC",...
-        Location="northeast")
-elseif profile_sel == 4
-    legend("Raw, Stable",...
-        "Raw, Bleeding",...
-        "Synth., Stable",...
-        "Synth., Bleeding",...
-        "EHR, Stable",...
-        "EHR, Bleeding",...
-        Location="northeast")
-end
+% %% Empircal pdf
+% 
+% % pdf settings
+% if profile_sel == 1 || profile_sel == 2
+%     % Set figure info
+%     xlim_vec_pdf = [0 .1];
+%     ylim_vec_pdf = [0 100];
+%     frequency_sel =  2.3;
+% elseif profile_sel == 3
+%     % Set figure info
+%     xlim_vec_pdf = [0 .8];
+%     ylim_vec_pdf = [0 8];
+%     frequency_sel =  1.2;
+% elseif profile_sel == 4
+%     % Set figure info
+%     xlim_vec_pdf = [0 .6];
+%     ylim_vec_pdf = [0 8];
+%     frequency_sel =  1.6;
+% end
+% index = round(frequency_sel * window_duration) + 1;
+% 
+% % Set up figure
+% figure(2)
+% hold on
+% 
+% averages = zeros(3,2);
+% for j = 1:length(signal_sel)
+%     for k = 1:2
+% 
+%         % Select color for signal type
+%         switch j
+%             case 1
+%                 linecolor = "#da1e28";
+%             case 2
+%                 linecolor = "#0f62fe";
+%             case 3
+%                 linecolor = "#198038";
+%         end
+% 
+%         % Select null/alternative hypothesis
+%         switch k
+%             case 1
+%                 linestyle = "-";
+%                 windows = fwindows_null(:,j);
+%             case 2
+%                 linestyle = "--";
+%                 windows = fwindows_hypo(:,j);
+%         end
+% 
+%         % Create new frequency-separated samples
+%         block = vertcat(windows{:});
+%         block(:,1) = 1;
+%         block_powers = sum(block.^2,2);
+%         block = block ./ block_powers;
+% 
+%         % Plot pdf data
+%         datavec_sel = block(:,index);
+%         [f, xi] = ksdensity(datavec_sel, 'Support', 'positive'); % Estimate PDF using kernel density estimation
+%         indices = xi >= 0;
+%         xi = xi(indices);
+%         f = f(indices);
+%         f = f ./ trapz(xi, f);
+%         plot(xi, f, Color=linecolor,linewidth=line_val,LineStyle=linestyle);
+% 
+%         1;
+% 
+%     end
+% end
+% 
+% % Finish figure setup
+% grid on;
+% ylim(ylim_vec_pdf)
+% xlim(xlim_vec_pdf)
+% xlabel("Signal amplitude (mmHg)")
+% ylabel("Probability")
+% set(gca, 'FontSize', font_val);
+% if profile_sel == 1 || profile_sel == 2
+%     legend("Raw, Resuscitated",...
+%         "Raw, Hypovolemic",...
+%         "Synth., Resuscitated",...
+%         "Synth., Hypovolemic",...
+%         "EHR, Resuscitated",...
+%         "EHR, Hypovolemic",...
+%         Location="northeast")
+% elseif profile_sel == 3
+%     legend("Raw, PRO",...
+%         "Raw, MAC",...
+%         "Synth., PRO",...
+%         "Synth., MAC",...
+%         "EHR, PRO",...
+%         "EHR, MAC",...
+%         Location="northeast")
+% elseif profile_sel == 4
+%     legend("Raw, Stable",...
+%         "Raw, Bleeding",...
+%         "Synth., Stable",...
+%         "Synth., Bleeding",...
+%         "EHR, Stable",...
+%         "EHR, Bleeding",...
+%         Location="northeast")
+% end
 
 %% Empirical CDF
 
 % CDF settings
 if profile_sel == 1 || profile_sel == 2
     frequency_sel =  2.3;
-    xlim([0 2.5])
+    xlim_vec = [0 1];
+    ylim_vec = [0 1];
 elseif profile_sel == 3
     frequency_sel =  1.2;
     xlim([0 3.5])
@@ -358,6 +362,11 @@ for j = 1:length(signal_sel)
         % Create new frequency-separated samples
         block = vertcat(windows{:});
 
+        % Drop DC components and normalize
+        % block(:,1) = [];
+        % block_powers = sum(block.^2,2);
+        % block = block ./ block_powers;
+
         % Get empirical CDF's
         datavec_sel = block(:,index);
         [F,x] = ecdf(datavec_sel);
@@ -368,7 +377,9 @@ end
 
 % Finish figure setup
 grid on;
-xlabel("Sigmal amplitude (mmHg)")
+xlim(xlim_vec)
+ylim(ylim_vec)
+xlabel("Signal amplitude (mmHg)")
 ylabel("Probability")
 set(gca, 'FontSize', font_val);
 if profile_sel == 1 || profile_sel == 2
@@ -397,29 +408,13 @@ elseif profile_sel == 4
         Location="southeast")
 end
 
-%% Sample Canonical Correlations
+%% One-Way MANOVA Test
 
 p_val = zeros(3,1);
 tbl = zeros(3,1);
 r_tbl = zeros(3,1);
 stats = cell(3,1);
 for j = 1:length(signal_sel)
-
-    % Select data for each window
-    switch j
-        case 1
-            linecolor = "#da1e28";
-            linestyle = "-";
-            linemarker = "o";
-        case 2
-            linecolor = "#0f62fe";
-            linestyle = "-";
-            linemarker = "^";
-        case 3
-            linecolor = "#198038";
-            linestyle = "-";
-            linemarker = "*";
-    end
 
     % Separate resusitated and hypovolemic data
     resu_windows = fwindows_null(:,j);
@@ -428,6 +423,14 @@ for j = 1:length(signal_sel)
     % Create new frequency-separated samples
     resu_block = vertcat(resu_windows{:});
     hypo_block = vertcat(hypo_windows{:});
+
+    % % Drop DC components and normalize
+    % resu_block(:,1) = [];
+    % block_powers = sum(resu_block.^2,2);
+    % resu_block = resu_block ./ block_powers;
+    % hypo_block(:,1) = [];
+    % block_powers = sum(hypo_block.^2,2);
+    % hypo_block = hypo_block ./ block_powers;
 
     % Get sizes of data
     L = size(resu_block, 2); % Length of each window
@@ -462,6 +465,7 @@ figure(4)
 hold on
 
 p_vals = cell(length(signal_sel),1);
+log_p_vals = cell(length(signal_sel),1);
 for j = 1:length(signal_sel)
 
     % Select data for each window
@@ -484,78 +488,90 @@ for j = 1:length(signal_sel)
     resu_block = cell2mat(fwindows_null(:,j));
     hypo_block = cell2mat(fwindows_hypo(:,j));
 
+    % % Drop DC components and normalize
+    % resu_block(:,1) = [];
+    % block_powers = sum(resu_block.^2,2);
+    % resu_block = resu_block ./ block_powers;
+    % hypo_block(:,1) = [];
+    % block_powers = sum(hypo_block.^2,2);
+    % hypo_block = hypo_block ./ block_powers;
+
     resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
     hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
 
-    % Test the samples using KS two-sample test
-    [~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+    % Test the samples using KS two-sample testj
+    [~,~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+    % log_p_vals{j} = log10(p_vals{j});
+    log_p_vals{j} = (p_vals{j});
+    log_p_vals{j} = max(log_p_vals{j},-400);
 
     % Plot result of KS test
-    plot(f_range, log10(p_vals{j}), Color=linecolor,LineStyle=linestyle,LineWidth=line_val);
+    plot(f_range, log_p_vals{j}, Color=linecolor,LineStyle=linestyle,LineWidth=line_val);
 
 end
 
 % Finish figure setup
 grid on
 xlabel("Frequency (Hz)")
-ylabel("p-values (log_{10})")
-ylim([-350 0])
+% ylabel("p-values (log_{10})")
+ylabel("Dist. between Empirical CDFs")
+% ylim([-400 0])
 set(gca, 'FontSize', font_val);
 legend("Raw","Synth.","EHR",Location="southeast")
 
-%% KS Two-sample Test on Sample Covariance Matrices
-
-% KS Settings
-f_range = 0:1/window_duration:frequency_limit-1/window_duration;
-
-p_vals = cell(length(signal_sel),1);
-for j = 1:length(signal_sel)
-
-    % Select data for each window
-    switch j
-        case 1
-            sig_name = "raw";
-            linecolor = "#da1e28";
-            linestyle = "-";
-            linemarker = "o";
-        case 2
-            sig_name = "IPFM-synth.";
-            linecolor = "#0f62fe";
-            linestyle = "-";
-            linemarker = "^";
-        case 3
-            sig_name = "EHR";
-            linecolor = "#198038";
-            linestyle = "-";
-            linemarker = "*";
-    end
-
-    % Create new frequency-separated samples
-    resu_block = cell2mat(fwindows_null(:,j));
-    hypo_block = cell2mat(fwindows_hypo(:,j));
-
-    resu_block_new = zeros(size(resu_block,1),size(resu_block,2)^2);
-    hypo_block_new = zeros(size(hypo_block,1),size(hypo_block,2)^2);
-    for i = 1:size(resu_block,1)
-        resu_cov = resu_block(i,:)' * resu_block(i,:);
-        resu_block_new(i,:) = resu_cov(:)';
-    end
-    for i = 1:size(hypo_block,1)
-        hypo_cov = hypo_block(i,:)' * hypo_block(i,:);
-        hypo_block_new(i,:) = hypo_cov(:)';
-    end
-    resu_block = resu_block_new;
-    hypo_block = hypo_block_new;
-
-    resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
-    hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
-
-    % Test the samples using KS two-sample test
-    [~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
-
-    % Plot result of KS test
-    figure(10+j)
-    imagesc(abs(log10(reshape(p_vals{j},window_duration*frequency_limit,window_duration*frequency_limit))))
-    title(sprintf("KS Test on %s Covariance Matrices",sig_name))
-
-end
+% %% KS Two-sample Test on Sample Covariance Matrices
+% 
+% % KS Settings
+% f_range = 0:1/window_duration:frequency_limit-1/window_duration;
+% 
+% p_vals = cell(length(signal_sel),1);
+% for j = 1:length(signal_sel)
+% 
+%     % Select data for each window
+%     switch j
+%         case 1
+%             sig_name = "raw";
+%             linecolor = "#da1e28";
+%             linestyle = "-";
+%             linemarker = "o";
+%         case 2
+%             sig_name = "IPFM-synth.";
+%             linecolor = "#0f62fe";
+%             linestyle = "-";
+%             linemarker = "^";
+%         case 3
+%             sig_name = "EHR";
+%             linecolor = "#198038";
+%             linestyle = "-";
+%             linemarker = "*";
+%     end
+% 
+%     % Create new frequency-separated samples
+%     resu_block = cell2mat(fwindows_null(:,j));
+%     hypo_block = cell2mat(fwindows_hypo(:,j));
+% 
+%     resu_block_new = zeros(size(resu_block,1),size(resu_block,2)^2);
+%     hypo_block_new = zeros(size(hypo_block,1),size(hypo_block,2)^2);
+%     for i = 1:size(resu_block,1)
+%         resu_cov = resu_block(i,:)' * resu_block(i,:);
+%         resu_block_new(i,:) = resu_cov(:)';
+%     end
+%     for i = 1:size(hypo_block,1)
+%         hypo_cov = hypo_block(i,:)' * hypo_block(i,:);
+%         hypo_block_new(i,:) = hypo_cov(:)';
+%     end
+%     resu_block = resu_block_new;
+%     hypo_block = hypo_block_new;
+% 
+%     resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
+%     hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
+% 
+%     % Test the samples using KS two-sample test
+%     [~,p_vals{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+% 
+%     % Plot result of KS test
+%     figure(10+j)
+%     imagesc(abs(log10(reshape(p_vals{j},window_duration*frequency_limit,window_duration*frequency_limit))))
+%     title(sprintf("KS Test on %s Covariance Matrices",sig_name))
+% 
+% end

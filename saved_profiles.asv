@@ -1,0 +1,191 @@
+function [all_profiles,profile_names] = saved_profiles()
+
+% Initialize cell array of profiles
+all_profiles = cell(0);
+profile_names = cell(0);
+
+%% PROFILE 1
+profile_name = "Human, R/H - 5/10s Windows (All Patients)";
+p = struct;
+p.data_defaults = struct(...
+    'dataset', "Human", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bolus_type", "BB", ...
+    "hypovolemic", "R"), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("hypovolemic", "R")
+    struct("hypovolemic", "H")
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true);
+p.line_configs = {
+    struct('signal_sel', "raw_signal", 'window_duration', 5)
+    struct('signal_sel', "raw_signal", 'window_duration', 10)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 5)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 10)
+    struct('signal_sel', "EHR_signal", 'window_duration', 5)
+    struct('signal_sel', "EHR_signal", 'window_duration', 10)
+    };
+p.legend_vec = {
+    "5s windows, Raw"
+    "10s windows, Raw"
+    "5s windows, Synth."
+    "10s windows, Synth."
+    "5s windows, EHR"
+    "10s windows, EHR"
+    };
+p.line_styles = {
+    "-o"
+    "--x"
+    "-o"
+    "--x"
+    "-o"
+    "--x"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#FF0000"
+    "#0F62FE"
+    "#0F62FE"
+    "#24A249"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0.6 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 1
+profile_name = "Human, R/H - 5/10s Windows (rho < 0.9)";
+p = struct;
+p.data_defaults = struct(...
+    'dataset', "Human", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bolus_type", "BB", ...
+    "hypovolemic", "R"), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("hypovolemic", "R")
+    struct("hypovolemic", "H")
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0.9, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true);
+p.line_configs = {
+    struct('signal_sel', "raw_signal", 'window_duration', 5)
+    struct('signal_sel', "raw_signal", 'window_duration', 10)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 5)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 10)
+    struct('signal_sel', "EHR_signal", 'window_duration', 5)
+    struct('signal_sel', "EHR_signal", 'window_duration', 10)
+    };
+p.legend_vec = {
+    "5s windows, Raw"
+    "10s windows, Raw"
+    "5s windows, Synth."
+    "10s windows, Synth."
+    "5s windows, EHR"
+    "10s windows, EHR"
+    };
+p.line_styles = {
+    "-o"
+    "--x"
+    "-o"
+    "--x"
+    "-o"
+    "--x"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#FF0000"
+    "#0F62FE"
+    "#0F62FE"
+    "#24A249"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0.6 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+% %% PROFILE 2
+% profile_name = "Human, R/H - AB vs BB";
+% p = struct;
+% p.data_defaults = struct(...
+%     'dataset', "Human", ...
+%     'signal_sel', "raw_signal", ...
+%     'labels', struct("bolus_type", "BB", ...
+%     "hypovolemic", "R"), ...
+%     'exclude_patients', []);
+% p.data_groups = {
+%     struct("hypovolemic", "R")
+%     struct("hypovolemic", "H")
+%     };
+% p.model_parameters = struct(...
+%     'window_duration', 10, ...
+%     'frequency_limit', 30, ...
+%     'alpha', 0.5, ...
+%     'training_type', "percentage", ...
+%     'split_by', "patient", ...
+%     'tshift', 1, ...
+%     'drop_rho_below', 0.8, ...
+%     'drop_DC_component', true, ...
+%     'normalize_power', true);
+% p.line_configs = {
+%     struct('signal_sel', "raw_signal", 'bolus_type', "BB")
+%     struct('signal_sel', "raw_signal", 'bolus_type', "AB")
+%     struct('signal_sel', "IPFM_signal", 'bolus_type', "BB")
+%     struct('signal_sel', "IPFM_signal", 'bolus_type', "AB")
+%     struct('signal_sel', "EHR_signal", 'bolus_type', "BB")
+%     struct('signal_sel', "EHR_signal", 'bolus_type', "AB")
+%     };
+% p.legend_vec = {
+%     "BB, Raw"
+%     "AB, Raw"
+%     "BB, Synth."
+%     "AB, Synth."
+%     "BB, EHR"
+%     "AB, EHR"
+%     };
+% p.line_styles = {
+%     "-o"
+%     "--x"
+%     "-o"
+%     "--x"
+%     "-o"
+%     "--x"
+%     };
+% p.line_colors = {
+%     "#FF0000"
+%     "#FF0000"
+%     "#0F62FE"
+%     "#0F62FE"
+%     "#24A249"
+%     "#24A249"
+%     };
+% p.delete_configs = [];
+% p.legend_loc = "southeast";
+% p.xlim_vec = [0 0.3];
+% p.ylim_vec = [0.7 1];
+% all_profiles = [all_profiles p];
+% profile_names = [profile_names profile_name];
