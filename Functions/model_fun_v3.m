@@ -2,10 +2,6 @@ function model_fun_v3(save_data,conn,table_name,parameters,paramHash,iter)
 
 % Settings
 load_path = "Models/";
-training_percentage = 0.7;
-cv_spec = 5;
-sample_rate = 1000;
-max_iterations = 1e8;
 
 % If the folder does not exist, create it
 if ~exist(load_path, 'dir')
@@ -66,6 +62,21 @@ end
 if run_flag
 
     % Make parameters
+    try
+        training_percentage = parameters.training_percentage;
+    catch
+        training_percentage = 0.7;
+    end
+    try
+        cv_spec = parameters.cv_spec;
+    catch
+        cv_spec = 5;
+    end
+    try
+        max_iterations = parameters.max_iterations;
+    catch
+        max_iterations = 1e8;
+    end
     window_duration = parameters.window_duration;
     frequency_limit = parameters.frequency_limit;
     alpha = parameters.alpha;
@@ -79,9 +90,15 @@ if run_flag
     catch
         randomize_training = false;
     end
+    try
+        pca_method = parameters.pca_method;
+        pca_sigma_threshold = parameters.pca_sigma_threshold;
+    catch
+        pca_method = "none";
+    end
 
     % Load dataset
-    data = load_dataset(parameters);
+    [data,sample_rate] = load_dataset(parameters);
     data_master = vertcat(data.signals{:});
 
     % Set parameters
@@ -219,9 +236,109 @@ if run_flag
         % Normalize power if specified
         if normalize_power
             row_powers = sum(abs(fwindows_train_block).^2,2);
+            row_powers(row_powers == 0) = 1;
             fwindows_train_block = fwindows_train_block ./ sqrt(row_powers);
             row_powers = sum(abs(fwindows_test_block).^2,2);
+            row_powers(row_powers == 0) = 1;
             fwindows_test_block = fwindows_test_block ./ sqrt(row_powers);
+        end
+
+        % Remove smaller singular values from the data
+        if pca_method ~= "none"
+            % Normalize training data
+            mu = mean(fwindows_train_block);
+            sigma = std(fwindows_train_block);
+            X_train = (fwindows_train_block - mu) ./ sigma;
+            X_testing = (fwindows_test_block - mu) ./ sigma;
+
+            switch pca_method
+                case "cov"
+
+                    % Get covariance of normalized data and eigen-decomposition
+                    C = cov(X_train);
+                    [V,D] = eig(C);
+
+                    % Sort eigenvalues
+                    [eigvals, idx] = sort(diag(D), 'descend');
+                    V = V(:,idx);
+
+                    % Calculate explained variance ratio
+                    evr = eigvals / sum(eigvals);
+
+                    % Assign full data for reduction
+                    fulldata_training = X_train;
+                    fulldata_testing = X_testing;
+
+                case "svd"
+
+                    % Perform SVD
+                    [~,S,V] = svd(X_train);
+
+                    % Calculate explained variance ratio
+                    s_vals = diag(S);
+                    e_var = s_vals.^2 / (size(X_train,1) - 1);
+                    evr = e_var / sum(e_var);
+
+                    % Assign full data for reduction
+                    fulldata_training = X_train;
+                    fulldata_testing = X_testing;
+
+                case "kpca"
+
+                    % Find kernel sigma value
+                    sq_dists = pdist2(X_train, X_train, 'euclidean').^2;
+                    median_dist = median(sq_dists(:));
+                    pca_sigma_kernel = sqrt(median_dist / 2);
+
+                    % Generate kernels
+                    K_train = exp(-pdist2(X_train, X_train).^2 / (2*pca_sigma_kernel^2));
+                    K_test = exp(-pdist2(X_testing,X_train).^2 / (2*pca_sigma_kernel^2));
+
+                    % Center kernels
+                    n = size(K_train,1);
+                    one_n = ones(n,n)/n;
+                    K_train_centered = K_train - one_n*K_train - K_train*one_n + one_n*K_train*one_n;
+                    K_test_centered = K_test - ones(size(K_test,1),1)*mean(K_train,1) - K_test*ones(n,1)/n + mean(K_train(:));
+
+                    % Center and decompose kernel matrix
+                    [V,D] = eig(K_train_centered);
+
+                    % Sort eigenvalue decomposition
+                    eigvals = diag(D);
+                    [eigvals, idx] = sort(eigvals, 'descend');
+                    V = V(:,idx);
+
+                    % Calculate explained variance ratio
+                    evr = eigvals / sum(eigvals);
+
+                    % Assign full data for reduction
+                    fulldata_training = K_train_centered;
+                    fulldata_testing = K_test_centered;
+
+                case "spca"
+                    % Implement sparse PCA
+                case "rpca"
+                    % Implement robust PCA
+                case "ppca"
+                    % Probabilistic PCA (MATLAB's ppca?)
+                otherwise
+                    error("Unexpected PCA method specified!")
+            end
+
+            % Find number of desired eigenvalues
+            cum_evr = cumsum(evr);
+            K = find(cum_evr >= pca_sigma_threshold, 1);
+
+            % Generate reduced datasets, reassign training and testing blocks
+            if pca_method == "kpca"
+                alphas = V(:,1:K) ./ sqrt(eigvals(1:K))';
+                fwindows_train_block = K_train_centered * alphas;
+                fwindows_test_block = K_test_centered * alphas;
+            else
+                fwindows_train_block = fulldata_training * V(:, 1:K);
+                fwindows_test_block = fulldata_testing * V(:, 1:K);
+            end
+
         end
 
         % Serialize to JSON for DB

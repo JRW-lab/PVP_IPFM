@@ -96,6 +96,8 @@ end
 switch primary_var
     case "frequency_limit"
         xlabel_name = "Cutoff Frequency (Hz)";
+    case "pca_sigma_threshold"
+        xlabel_name = "Explained Variance Ratio Threshold";
     otherwise
         xlabel_name = primary_var;
 end

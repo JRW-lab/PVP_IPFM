@@ -6,11 +6,6 @@ function sim_head(app_settings)
 % Coded 6/9/2025, JRW
 clc;
 
-% app_settings.data_view = "roc";
-% app_settings.level_view = "win";
-% app_settings.data_type = "accy";
-% app_settings.max_freq = 30;
-
 % Import settings from matlab app
 data_view = app_settings.data_view;
 level_view = app_settings.level_view;
@@ -28,6 +23,7 @@ delete_sel = false;
 
 % Settings
 dbname     = 'med_database';
+% table_name = "bleeding_pigs_v1";
 table_name = "lrm_results_v2";
 
 % Introduce, set up connection to MySQL server
@@ -69,16 +65,21 @@ figure_data.line_styles = line_styles;
 figure_data.line_colors = line_colors;
 figure_data.save_sel = true;
 
-if app_settings.data_view == "roc"
-    y = cellfun(@(x) char(x),figure_data.line_styles,'UniformOutput',false);
-    figure_data.line_styles = cellfun(@(x) x(1:(end-1)),y,'UniformOutput',false);
-end
+% if app_settings.data_view == "roc"
+%     y = cellfun(@(x) char(x),figure_data.line_styles,'UniformOutput',false);
+%     figure_data.line_styles = cellfun(@(x) x(1:(end-1)),y,'UniformOutput',false);
+% end
 
 % Set up ranges
 if data_view == "figure"
     data_type = "accy";
+    % primary_var = p_sel.figure_var;
     primary_var = "frequency_limit";
-    primary_vals = 5:5:max_freq;
+    if primary_var == "frequency_limit"
+        primary_vals = 5:5:max_freq;
+    else
+        primary_vals = p_sel.primary_vals;
+    end
 else
     primary_var = "frequency_limit";
     primary_vals = max_freq;

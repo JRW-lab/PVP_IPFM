@@ -6,13 +6,12 @@ figures_folder = 'Figures';
 line_val = 2;
 mark_val = 10;
 font_val = 16;
-marker_count = 7;
+marker_count = 100;
 xlabel_name = "1 - Specificity";
 ylabel_name = "Sensitivity";
 loc = figure_data.legend_loc;
 xlim_vec = figure_data.xlim_vec;
 ylim_vec = figure_data.ylim_vec;
-marker_space = linspace(0,max(xlim_vec),marker_count);
 
 % Import parameters
 data_type = figure_data.data_type;
@@ -51,13 +50,12 @@ for i = 1:length(line_configs)
     
     % Get ROC curve
     [X,Y] = perfcurve(true_labels_all, probs_all, 1);
-    [~,marker_indices] = arrayfun(@(x) min(abs(X-x)), marker_space);
     plot(X,Y, ...
         line_styles{i}, ...
         Color=line_colors{i}, ...
         LineWidth=line_val, ...
         MarkerSize=mark_val, ...
-        MarkerIndices=marker_indices)
+        MarkerIndices=[1 10])
 end
 
 % Set figure settings

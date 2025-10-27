@@ -1,4 +1,4 @@
-function data = load_dataset(parameters)
+function [data,fs] = load_dataset(parameters)
 
 % Settings
 signal_type = "PVP";
@@ -36,6 +36,7 @@ catch
     data_T = cell(length(data_groups), 1);
     data_rho = cell(length(data_groups), 1);
     data_names = cell(length(data_groups), 1);
+    data_fs = cell(length(data_groups), 1);
     for i = 1:height(lookup_table)
 
         for j = 1:length(data_groups)
@@ -82,12 +83,19 @@ catch
                     data_T{j}(end+1,1) = S.data.T;
                     data_rho{j}(end+1,1) = S.data.rho;
                     data_names{j}(end+1,1) = S.data.name;
+                    data_fs{j}(end+1,1) = S.data.fs;
                 end
 
             end
 
         end
 
+    end
+
+    % Check sampling frequency to make sure data is consistent
+    fs = unique(vertcat(data_fs{:}));
+    if length(fs) > 1
+        error("Sampling frequency mismatch in the data!")
     end
 
     % Create data structure for exporting
@@ -98,6 +106,6 @@ catch
     data.names = data_names;
 
     % Save data file
-    save((fullfile(load_path, sprintf("dataset_%s.mat",paramHash))),"data");
+    save((fullfile(load_path, sprintf("dataset_%s.mat",paramHash))),"data","fs");
 
 end

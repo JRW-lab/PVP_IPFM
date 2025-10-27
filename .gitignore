@@ -1,8 +1,10 @@
 # Ignore unneeded folders
 Figures/
+Final Figures/
 Data/
 hide/
 Models/
+Legacy/
 
 # Ignore pilot pig studies
 MAIN_pig_trials.m

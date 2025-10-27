@@ -45,11 +45,11 @@ p.legend_vec = {
     };
 p.line_styles = {
     "-o"
+    "--o"
+    "-x"
     "--x"
-    "-o"
-    "--x"
-    "-o"
-    "--x"
+    "-v"
+    "--v"
     };
 p.line_colors = {
     "#FF0000"
@@ -107,11 +107,11 @@ p.legend_vec = {
     };
 p.line_styles = {
     "-o"
+    "--o"
+    "-x"
     "--x"
-    "-o"
-    "--x"
-    "-o"
-    "--x"
+    "-v"
+    "--v"
     };
 p.line_colors = {
     "#FF0000"
@@ -226,11 +226,11 @@ p.legend_vec = {
     };
 p.line_styles = {
     "-o"
+    "--o"
+    "-x"
     "--x"
-    "-o"
-    "--x"
-    "-o"
-    "--x"
+    "-v"
+    "--v"
     };
 p.line_colors = {
     "#FF0000"
@@ -244,5 +244,137 @@ p.delete_configs = [];
 p.legend_loc = "southeast";
 p.xlim_vec = [0 0.3];
 p.ylim_vec = [0.7 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 5
+profile_name = "Pig, Stable Blood Level Test";
+p = struct;
+p.data_defaults = struct(...
+    'dataset', "Pilot Pig", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bleeding", ["S","B"], ...
+                     "max_TBV_loss", 0:5:25), ...
+    'exclude_patients', []);
+p.data_groups = {
+    % struct("max_TBV_loss", [0,5])
+    % struct("max_TBV_loss", [10,15])
+    % struct("max_TBV_loss", [20,25])
+
+    % struct("bleeding", "S")
+    % struct("bleeding", "B")
+
+    % struct("max_TBV_loss", 0)
+    % struct("max_TBV_loss", 5)
+    % struct("max_TBV_loss", 10)
+    % struct("max_TBV_loss", 15)
+    % struct("max_TBV_loss", 20)
+    % struct("max_TBV_loss", 25)
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true, ...
+    'training_percentage', 0.7,...
+    'cv_spec', 5,...
+    'max_iterations', 1e8);
+p.line_configs = {
+    struct('signal_sel', "raw_signal")
+    struct('signal_sel', "IPFM_signal")
+    struct('signal_sel', "EHR_signal")
+    };
+p.legend_vec = {
+    "Raw PVP"
+    "IPFM-PVP"
+    "IPFM-EHR"
+    };
+p.line_styles = {
+    "-o"
+    "-o"
+    "-o"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#0F62FE"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 6
+profile_name = "Pig, Stable Blood Level Test (PCA)";
+p = struct;
+p.figure_var = "pca_sigma_threshold";
+p.primary_vals = 0.3:0.05:0.65;
+p.data_defaults = struct(...
+    'dataset', "Pilot Pig", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bleeding", ["S"], ...
+                     "max_TBV_loss", 0:5:25), ...
+    'exclude_patients', []);
+p.data_groups = {
+    % struct("max_TBV_loss", [0,5])
+    % struct("max_TBV_loss", [10,15])
+    % struct("max_TBV_loss", [20,25])
+
+    % struct("bleeding", "S")
+    % struct("bleeding", "B")
+
+    struct("max_TBV_loss", 0)
+    struct("max_TBV_loss", 5)
+    struct("max_TBV_loss", 10)
+    struct("max_TBV_loss", 15)
+    struct("max_TBV_loss", 20)
+    struct("max_TBV_loss", 25)
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true, ...
+    'training_percentage', 0.7,...
+    'cv_spec', 5,...
+    'max_iterations', 1e8,...
+    'pca_method', "cov",...
+    'pca_sigma_threshold', 1);
+p.line_configs = {
+    struct('signal_sel', "raw_signal")
+    struct('signal_sel', "IPFM_signal")
+    struct('signal_sel', "EHR_signal")
+    };
+p.legend_vec = {
+    "Raw PVP"
+    "IPFM-PVP"
+    "IPFM-EHR"
+    };
+p.line_styles = {
+    "-o"
+    "-o"
+    "-o"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#0F62FE"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];

@@ -40,10 +40,16 @@ for i = 1:length(label_fields)
     fprintf("        %s: ", label_fields{i});
     for j = 1:length(d.data_groups)
         if ~ismissing(d.labels.(label_fields{i}))
-            fprintf("%s", string(d.labels.(label_fields{i})));
+            data_vec = string(d.labels.(label_fields{i}));
         else
-            fprintf("%s", string(d.data_groups{j}.(label_fields{i})));
+            data_vec = string(d.data_groups{j}.(label_fields{i}));
         end
+        if length(data_vec) > 1
+            data_vec = strjoin(data_vec, '/');
+        end
+
+        fprintf("%s", data_vec);
+
         if j ~= length(d.data_groups)
             fprintf(", ")
         else
