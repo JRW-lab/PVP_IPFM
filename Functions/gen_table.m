@@ -57,44 +57,9 @@ for sel = 1:length(line_configs)
     % results_val = mean(results_val);
 
     % Add data to stack
-    results_vec{sel} = results_val.';
+    results_vec{sel} = results_val;
 
 end
-
-% figure(1)
-% subplot(3,1,1)
-% histogram(results_vec{1},10,"FaceColor","red")
-% ylim([0 11])
-% ylabel("Frequency")
-% % yticks(0:2:10)
-% grid on;
-% set(gca, 'FontSize', font_val);
-% legend("Raw PVP",Location="northwest")
-% subplot(3,1,2)
-% histogram(results_vec{3},10)
-% ylim([0 11])
-% ylabel("Frequency")
-% % yticks(0:2:10)
-% grid on;
-% set(gca, 'FontSize', font_val);
-% legend("IPFM-PVP",Location="northwest")
-% subplot(3,1,3)
-% histogram(results_vec{5},10,"FaceColor","blue")
-% ylim([0 11])
-% ylabel("Frequency")
-% % yticks(0:2:10)
-% grid on;
-% set(gca, 'FontSize', font_val);
-% legend("IPFM-EHR",Location="northwest")
-% xlabel("LOOECV Model Accuracy")
-% 
-% figure(2)
-% plot([results_vec{1}; results_vec{3}; results_vec{5}])
-% xticks(1:1:3)
-% xticklabels(["Raw PVP" "IPFM-PVP" "IPFM-EHR"])
-% ylabel("LOOVE Model Accuracy")
-% grid on;
-% set(gca, 'FontSize', font_val);
 
 % Get results name for column
 results_name = sprintf("%s.%s",level_view,data_type);

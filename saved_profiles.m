@@ -5,6 +5,68 @@ all_profiles = cell(0);
 profile_names = cell(0);
 
 %% PROFILE 1
+profile_name = "Human, R/H - AB vs BB";
+p = struct;
+p.data_defaults = struct(...
+    'dataset', "Human", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bolus_type", "BB", ...
+    "hypovolemic", "R"), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("hypovolemic", "R")
+    struct("hypovolemic", "H")
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true);
+p.line_configs = {
+    struct('signal_sel', "raw_signal", 'bolus_type', "BB")
+    struct('signal_sel', "raw_signal", 'bolus_type', "AB")
+    struct('signal_sel', "IPFM_signal", 'bolus_type', "BB")
+    struct('signal_sel', "IPFM_signal", 'bolus_type', "AB")
+    struct('signal_sel', "EHR_signal", 'bolus_type', "BB")
+    struct('signal_sel', "EHR_signal", 'bolus_type', "AB")
+    };
+p.legend_vec = {
+    "Raw PVP, BB"
+    "Raw PVP, AB"
+    "IPFM-PVP, BB"
+    "IPFM-PVP, AB"
+    "IPFM-HB, BB"
+    "IPFM-HB, AB"
+    };
+p.line_styles = {
+    "-o"
+    "--o"
+    "-x"
+    "--x"
+    "-v"
+    "--v"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#FF0000"
+    "#0F62FE"
+    "#0F62FE"
+    "#24A249"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0.7 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 2
 profile_name = "Human, R/H - 5/10s Windows (All Patients)";
 p = struct;
 p.data_defaults = struct(...
@@ -40,8 +102,8 @@ p.legend_vec = {
     "Raw PVP, 5s windows"
     "IPFM-PVP, 10s windows"
     "IPFM-PVP, 5s windows"
-    "IPFM-EHR, 10s windows"
-    "IPFM-EHR, 5s windows"
+    "IPFM-HB, 10s windows"
+    "IPFM-HB, 5s windows"
     };
 p.line_styles = {
     "-o"
@@ -66,7 +128,7 @@ p.ylim_vec = [0.6 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
 
-%% PROFILE 2
+%% PROFILE 3
 profile_name = "Human, R/H - 5/10s Windows (rho >= 0.9)";
 p = struct;
 p.data_defaults = struct(...
@@ -102,8 +164,8 @@ p.legend_vec = {
     "Raw PVP, 5s windows"
     "IPFM-PVP, 10s windows"
     "IPFM-PVP, 5s windows"
-    "IPFM-EHR, 10s windows"
-    "IPFM-EHR, 5s windows"
+    "IPFM-HB, 10s windows"
+    "IPFM-HB, 5s windows"
     };
 p.line_styles = {
     "-o"
@@ -128,7 +190,7 @@ p.ylim_vec = [0.6 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
 
-%% PROFILE 3
+%% PROFILE 4
 profile_name = "Human, R/H - Patient split (rho >= 0.9)";
 p = struct;
 p.data_defaults = struct(...
@@ -182,68 +244,6 @@ p.delete_configs = [1,2,3];
 p.legend_loc = "northeast";
 p.xlim_vec = [0 0.3];
 p.ylim_vec = [0.5 1];
-all_profiles = [all_profiles p];
-profile_names = [profile_names profile_name];
-
-%% PROFILE 4
-profile_name = "Human, R/H - AB vs BB";
-p = struct;
-p.data_defaults = struct(...
-    'dataset', "Human", ...
-    'signal_sel', "raw_signal", ...
-    'labels', struct("bolus_type", "BB", ...
-    "hypovolemic", "R"), ...
-    'exclude_patients', []);
-p.data_groups = {
-    struct("hypovolemic", "R")
-    struct("hypovolemic", "H")
-    };
-p.model_parameters = struct(...
-    'window_duration', 10, ...
-    'frequency_limit', 30, ...
-    'alpha', 0.5, ...
-    'training_type', "percentage", ...
-    'split_by', "signal", ...
-    'tshift', 1, ...
-    'drop_rho_below', 0, ...
-    'drop_DC_component', true, ...
-    'normalize_power', true);
-p.line_configs = {
-    struct('signal_sel', "raw_signal", 'bolus_type', "BB")
-    struct('signal_sel', "raw_signal", 'bolus_type', "AB")
-    struct('signal_sel', "IPFM_signal", 'bolus_type', "BB")
-    struct('signal_sel', "IPFM_signal", 'bolus_type', "AB")
-    struct('signal_sel', "EHR_signal", 'bolus_type', "BB")
-    struct('signal_sel', "EHR_signal", 'bolus_type', "AB")
-    };
-p.legend_vec = {
-    "Raw PVP, BB"
-    "Raw PVP, AB"
-    "IPFM-PVP, BB"
-    "IPFM-PVP, AB"
-    "IPFM-EHR, BB"
-    "IPFM-EHR, AB"
-    };
-p.line_styles = {
-    "-o"
-    "--o"
-    "-x"
-    "--x"
-    "-v"
-    "--v"
-    };
-p.line_colors = {
-    "#FF0000"
-    "#FF0000"
-    "#0F62FE"
-    "#0F62FE"
-    "#24A249"
-    "#24A249"
-    };
-p.delete_configs = [];
-p.legend_loc = "southeast";
-p.xlim_vec = [0 0.3];
-p.ylim_vec = [0.7 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
 
@@ -319,23 +319,23 @@ p.primary_vals = 0.3:0.05:0.65;
 p.data_defaults = struct(...
     'dataset', "Pilot Pig", ...
     'signal_sel', "raw_signal", ...
-    'labels', struct("bleeding", ["S"], ...
+    'labels', struct("bleeding", ["S","B"], ...
                      "max_TBV_loss", 0:5:25), ...
     'exclude_patients', []);
 p.data_groups = {
-    % struct("max_TBV_loss", [0,5])
-    % struct("max_TBV_loss", [10,15])
-    % struct("max_TBV_loss", [20,25])
+    struct("max_TBV_loss", [0,5])
+    struct("max_TBV_loss", [10,15])
+    struct("max_TBV_loss", [20,25])
 
     % struct("bleeding", "S")
     % struct("bleeding", "B")
 
-    struct("max_TBV_loss", 0)
-    struct("max_TBV_loss", 5)
-    struct("max_TBV_loss", 10)
-    struct("max_TBV_loss", 15)
-    struct("max_TBV_loss", 20)
-    struct("max_TBV_loss", 25)
+    % struct("max_TBV_loss", 0)
+    % struct("max_TBV_loss", 5)
+    % struct("max_TBV_loss", 10)
+    % struct("max_TBV_loss", 15)
+    % struct("max_TBV_loss", 20)
+    % struct("max_TBV_loss", 25)
     };
 p.model_parameters = struct(...
     'window_duration', 10, ...
@@ -350,8 +350,8 @@ p.model_parameters = struct(...
     'training_percentage', 0.7,...
     'cv_spec', 5,...
     'max_iterations', 1e8,...
-    'pca_method', "cov",...
-    'pca_sigma_threshold', 1);
+    'pca_method', "kpca",...
+    'pca_sigma_threshold', 0.65);
 p.line_configs = {
     struct('signal_sel', "raw_signal")
     struct('signal_sel', "IPFM_signal")
@@ -364,8 +364,8 @@ p.legend_vec = {
     };
 p.line_styles = {
     "-o"
-    "-o"
-    "-o"
+    "-x"
+    "-v"
     };
 p.line_colors = {
     "#FF0000"
@@ -374,7 +374,7 @@ p.line_colors = {
     };
 p.delete_configs = [];
 p.legend_loc = "southeast";
-p.xlim_vec = [0 0.3];
+p.xlim_vec = [0 0.5];
 p.ylim_vec = [0 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];

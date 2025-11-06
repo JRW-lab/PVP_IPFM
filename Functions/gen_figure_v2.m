@@ -63,11 +63,15 @@ for primvar_sel = 1:length(primary_vals)
         else
 
             % Select data to extract
-            result_vals = zeros(size(sim_result,1),1);
+            result_vals = cell(size(sim_result,1),1);
             for i = 1:size(sim_result,1)
                 metrics_loaded = jsondecode(sim_result.metrics{i});
-                results_mean(primvar_sel,sel) = mean(metrics_loaded.(level_view).(data_type));
+                result_vals{i} = metrics_loaded.(level_view).(data_type);
             end
+            result_vals = [result_vals{:}];
+            results_mean(primvar_sel,sel) = mean(result_vals,"all");
+            results_min(primvar_sel,sel) = min(result_vals,[],"all");
+            results_max(primvar_sel,sel) = max(result_vals,[],"all");
 
         end
 

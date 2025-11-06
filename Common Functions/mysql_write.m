@@ -2,19 +2,6 @@ function mysql_write(conn,table_name,parameters,new_frames,metrics_add)
 
 % Function setup
 [paramsJSON,paramHash] = jsonencode_sorted(parameters);
-% mysql_flag_id = 0;
-
-% Write to database
-% need_to_write = true;
-% while need_to_write
-%
-%     % Check system usage flag
-%     flag_val = mysql_check(conn,mysql_flag_id);
-%
-%     if ~flag_val
-% 
-% % Set system usage flag
-% mysql_set(conn,mysql_flag_id);
 
 % Load from DB again
 sim_result = mysql_load(conn,table_name,paramHash);
@@ -76,17 +63,3 @@ else % Make new row in DB
     sqlwrite(conn,table_name,sim_result_new);
 
 end
-
-% % No longer need to write to database
-% mysql_unset(conn,mysql_flag_id);
-% need_to_write = false;
-% 
-%     else
-%
-%         % Wait a random time between 1 and 5 seconds
-%         waitTime = 1 + (5 - 1) * rand();
-%         pause(waitTime);
-%
-%     end
-%
-% end

@@ -1,4 +1,4 @@
-function model_fun_v3(save_data,conn,table_name,parameters,paramHash,iter)
+function model_fun_v3(save_data,conn,table_name,parameters,paramHash,iter,delete_model)
 
 % Settings
 load_path = "Models/";
@@ -265,10 +265,6 @@ if run_flag
                     % Calculate explained variance ratio
                     evr = eigvals / sum(eigvals);
 
-                    % Assign full data for reduction
-                    fulldata_training = X_train;
-                    fulldata_testing = X_testing;
-
                 case "svd"
 
                     % Perform SVD
@@ -278,10 +274,6 @@ if run_flag
                     s_vals = diag(S);
                     e_var = s_vals.^2 / (size(X_train,1) - 1);
                     evr = e_var / sum(e_var);
-
-                    % Assign full data for reduction
-                    fulldata_training = X_train;
-                    fulldata_testing = X_testing;
 
                 case "kpca"
 
@@ -295,10 +287,18 @@ if run_flag
                     K_test = exp(-pdist2(X_testing,X_train).^2 / (2*pca_sigma_kernel^2));
 
                     % Center kernels
-                    n = size(K_train,1);
-                    one_n = ones(n,n)/n;
-                    K_train_centered = K_train - one_n*K_train - K_train*one_n + one_n*K_train*one_n;
-                    K_test_centered = K_test - ones(size(K_test,1),1)*mean(K_train,1) - K_test*ones(n,1)/n + mean(K_train(:));
+                    ntr = size(K_train,1);
+                    ntt = size(K_test,1);
+                    one_tr = ones(ntr,ntr) / ntr;
+                    one_tt = ones(ntt,ntr) / ntr;
+                    K_train_centered = K_train ...
+                        - one_tr * K_train ...
+                        - K_train * one_tr...
+                        + one_tr * K_train * one_tr;
+                    K_test_centered = K_test ...
+                        - one_tt*K_train ...
+                        - K_test*one_tr ...
+                        + one_tt*K_train*one_tr;
 
                     % Center and decompose kernel matrix
                     [V,D] = eig(K_train_centered);
@@ -310,10 +310,6 @@ if run_flag
 
                     % Calculate explained variance ratio
                     evr = eigvals / sum(eigvals);
-
-                    % Assign full data for reduction
-                    fulldata_training = K_train_centered;
-                    fulldata_testing = K_test_centered;
 
                 case "spca"
                     % Implement sparse PCA
@@ -335,8 +331,8 @@ if run_flag
                 fwindows_train_block = K_train_centered * alphas;
                 fwindows_test_block = K_test_centered * alphas;
             else
-                fwindows_train_block = fulldata_training * V(:, 1:K);
-                fwindows_test_block = fulldata_testing * V(:, 1:K);
+                fwindows_train_block = X_train * V(:, 1:K);
+                fwindows_test_block = X_testing * V(:, 1:K);
             end
 
         end
@@ -353,6 +349,8 @@ if run_flag
         try
             if randomize_training
                 error("Randomized training doesn't save models.")
+            elseif delete_model
+                error("Model must be remade for deleted configurations.")
             else
                 % Try to load file
                 models = load((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))));
@@ -360,6 +358,12 @@ if run_flag
                 theta = models.theta;
                 test_probs = models.test_probs;
                 true_labels = models.true_labels;
+
+                % Temporary conversion - remove after all old data is gone
+                if ~iscell(test_probs)
+                    test_probs = {test_probs};
+                    save((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))),"beta","theta","test_probs","true_labels");
+                end
 
                 if size(models.beta,2) < iter
                     switch model_type
@@ -380,16 +384,15 @@ if run_flag
                     end
 
                     % Test data
-                    test_probs(:,iter) = regression_test(model_type,fwindows_test_block,beta,theta);
+                    test_probs{iter} = regression_test(model_type,fwindows_test_block,beta,theta);
                     true_labels(:,iter) = Yi_test_vec;
 
                     % Save data file
                     save((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))),"beta","theta","test_probs","true_labels");
                     beta = beta(:,iter);
-                else
-                    beta = models.beta(:,iter);
-                    theta = theta(:,iter);
-                    test_probs = test_probs(:,iter);
+                % else
+                %     beta = models.beta(:,iter);
+                %     theta = theta(:,iter);
                 end
             end
         catch
@@ -411,7 +414,7 @@ if run_flag
             end
 
             % Test data
-            test_probs = regression_test(model_type,fwindows_test_block,beta,theta);
+            test_probs{iter} = regression_test(model_type,fwindows_test_block,beta,theta);
             true_labels = Yi_test_vec;
 
             if ~randomize_training
@@ -423,9 +426,9 @@ if run_flag
         % Get window-level probabilities
         switch model_type
             case "elastic"
-                Yhat_test_vec = (test_probs > 0.5) * 1;
+                Yhat_test_vec = (test_probs{iter} > 0.5) * 1;
             case "ordinal"
-                [~,Yhat_test_vec] = max(test_probs,[],2);
+                [~,Yhat_test_vec] = max(test_probs{iter},[],2);
                 Yhat_test_vec = Yhat_test_vec - 1;
         end
 

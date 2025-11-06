@@ -5,6 +5,6 @@ Data/
 hide/
 Models/
 Legacy/
+PCA Figures/
 
-# Ignore pilot pig studies
-MAIN_pig_trials.m
+MAIN_sample_data.asv

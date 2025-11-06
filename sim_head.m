@@ -4,9 +4,17 @@ function sim_head(app_settings)
 % division set within each profile.
 %
 % Coded 6/9/2025, JRW
-clc;
+% clc;
+
+% Settings
+dbname     = 'med_database';
+% table_name = "bleeding_pigs_v1";
+% table_name = "lrm_results_v2";
+% delete_sel = true;
+delete_sel = false;
 
 % Import settings from matlab app
+table_name = string(app_settings.table_name);
 data_view = app_settings.data_view;
 level_view = app_settings.level_view;
 data_type = app_settings.data_type;
@@ -18,13 +26,8 @@ save_data.save_mysql = app_settings.save_mysql;
 create_database_tables = app_settings.create_database_tables;
 profile_sel = app_settings.profile_sel;
 num_frames = app_settings.num_frames;
-% delete_sel = app_settings.delete_sel;
-delete_sel = false;
 
-% Settings
-dbname     = 'med_database';
-% table_name = "bleeding_pigs_v1";
-table_name = "lrm_results_v2";
+
 
 % Introduce, set up connection to MySQL server
 addpath(fullfile(pwd, 'Common Functions'));
@@ -65,16 +68,14 @@ figure_data.line_styles = line_styles;
 figure_data.line_colors = line_colors;
 figure_data.save_sel = true;
 
-% if app_settings.data_view == "roc"
-%     y = cellfun(@(x) char(x),figure_data.line_styles,'UniformOutput',false);
-%     figure_data.line_styles = cellfun(@(x) x(1:(end-1)),y,'UniformOutput',false);
-% end
-
 % Set up ranges
 if data_view == "figure"
-    data_type = "accy";
-    % primary_var = p_sel.figure_var;
-    primary_var = "frequency_limit";
+    % data_type = "accy";
+    if table_name == "lrm_results_v2"
+        primary_var = "frequency_limit";
+    else
+        primary_var = p_sel.figure_var;
+    end
     if primary_var == "frequency_limit"
         primary_vals = 5:5:max_freq;
     else
@@ -292,6 +293,13 @@ if ~skip_simulations
                         % Set connection
                         conn_thrall = mysql_login(dbname);
 
+                        % Set delete condition
+                        if delete_sel && ismember(sel,delete_configs)
+                            delete_model = true;
+                        else
+                            delete_model = false;
+                        end
+
                         % Select parameters
                         result_parameters_inst = result_parameters_cell{primvar_sel,sel};
                         result_hash_inst = result_parameters_hashes(primvar_sel,sel);
@@ -313,7 +321,7 @@ if ~skip_simulations
                         send(dq, progress_bar_data);
 
                         % Simulate under current settings
-                        model_fun_v3(save_data,conn_thrall,table_name,result_parameters_inst,result_hash_inst,iter)
+                        model_fun_v3(save_data,conn_thrall,table_name,result_parameters_inst,result_hash_inst,iter,delete_model)
 
                         % Close connection instance
                         close(conn_thrall)
@@ -335,6 +343,13 @@ if ~skip_simulations
                     % Continue to simulate if need more frames
                     if iter > prior_frames(primvar_sel,sel)
 
+                        % Set delete condition
+                        if delete_sel && ismember(sel,delete_configs)
+                            delete_model = true;
+                        else
+                            delete_model = false;
+                        end
+
                         % Print message
                         progress_bar_data = result_parameters_inst;
                         progress_bar_data.profile_sel = profile_sel;
@@ -352,7 +367,7 @@ if ~skip_simulations
                         send(dq, progress_bar_data);
 
                         % Simulate under current settings
-                        model_fun_v3(save_data,conn,table_name,result_parameters_inst,result_hash_inst,iter)
+                        model_fun_v3(save_data,conn,table_name,result_parameters_inst,result_hash_inst,iter,delete_model)
 
                     end
                 end
