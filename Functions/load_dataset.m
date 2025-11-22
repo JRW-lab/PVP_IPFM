@@ -15,8 +15,12 @@ drop_rho_below = parameters.drop_rho_below;
 load_path = "Data/" + dataset + "/";
 
 % Serialize to JSON for DB
-dataset_parameters = parameters;
 dataset_parameters.data_groups = data_groups;
+dataset_parameters.dataset = dataset;
+dataset_parameters.signal_sel = signal_sel;
+dataset_parameters.labels = labels;
+dataset_parameters.exclude_patients = exclude_patients;
+dataset_parameters.drop_rho_below = drop_rho_below;
 paramsJSON  = jsonencode_sorted(dataset_parameters);
 paramHash = string(DataHash(paramsJSON,'SHA-256'));
 

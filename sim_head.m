@@ -4,16 +4,13 @@ function sim_head(app_settings)
 % division set within each profile.
 %
 % Coded 6/9/2025, JRW
-% clc;
+clc;
 
 % Settings
 dbname     = 'med_database';
-% table_name = "bleeding_pigs_v1";
-% table_name = "lrm_results_v2";
-% delete_sel = true;
-delete_sel = false;
 
 % Import settings from matlab app
+delete_sel = app_settings.delete_sel;
 table_name = string(app_settings.table_name);
 data_view = app_settings.data_view;
 level_view = app_settings.level_view;
@@ -23,11 +20,8 @@ use_parellelization = app_settings.use_parellelization;
 save_data.priority = app_settings.priority;
 save_data.save_excel = app_settings.save_excel;
 save_data.save_mysql = app_settings.save_mysql;
-create_database_tables = app_settings.create_database_tables;
 profile_sel = app_settings.profile_sel;
 num_frames = app_settings.num_frames;
-
-
 
 % Introduce, set up connection to MySQL server
 addpath(fullfile(pwd, 'Common Functions'));
@@ -70,12 +64,6 @@ figure_data.save_sel = true;
 
 % Set up ranges
 if data_view == "figure"
-    % data_type = "accy";
-    if table_name == "lrm_results_v2"
-        primary_var = "frequency_limit";
-    else
-        primary_var = p_sel.figure_var;
-    end
     if primary_var == "frequency_limit"
         primary_vals = 5:5:max_freq;
     else
@@ -85,22 +73,18 @@ else
     primary_var = "frequency_limit";
     primary_vals = max_freq;
 end
-
-% Set up figure data
-figure_data.level_view = level_view;
-figure_data.data_type = data_type;
-figure_data.primary_var = primary_var;
-figure_data.primary_vals = primary_vals;
-figure_data.legend_vec = legend_vec;
 figure_data.line_colors = line_colors;
 figure_data.save_sel = false;
+figure_data.primary_var = primary_var;
+figure_data.primary_vals = primary_vals;
+figure_data.level_view = level_view;
 
 %% Simulation setup
 
 % Set up connection to MySQL server
 if save_data.save_mysql
     conn = mysql_login(dbname);
-    if create_database_tables
+    if isempty(sqlfind(conn, table_name))
         % Set up MySQL commands
         sql_table = [
             "CREATE TABLE " + table_name + " (" ...
@@ -136,9 +120,6 @@ if save_data.save_mysql
     end
 else
     conn = [];
-    if create_database_tables
-
-    end
 end
 
 % Check already-saved results
@@ -188,8 +169,9 @@ for primvar_sel = 1:prvr_len
 
         % Create overall parameters
         model_parameters_inst = model_parameters;
-        model_parameters_inst.(primary_var) = primvar_val;
         result_parameters = mergestructs(data_defaults,model_parameters_inst);
+        result_parameters = mergestructs(result_parameters,model_settings);
+        result_parameters.(primary_var) = primvar_val;
 
         % Overwrite settings with config setting
         config_fields = fields(config_sel);
@@ -209,6 +191,15 @@ for primvar_sel = 1:prvr_len
             result_parameters.labels.(used_labels(i)) = NaN;
         end
 
+        % Remove redundancy
+        if result_parameters.pca_method == "none"
+            result_parameters = rmfield(result_parameters,"pca_sigma_threshold");
+        else
+            if result_parameters.data_centering
+                result_parameters.data_centering = false;
+            end
+        end
+
         % Generate result hash
         result_parameters.data_groups = data_groups;
         [~,paramHash] = jsonencode_sorted(result_parameters);
@@ -218,7 +209,7 @@ for primvar_sel = 1:prvr_len
         result_parameters_hashes(primvar_sel,sel) = paramHash;
 
         % Either delete the saved data and reset, or note previous progress
-        if delete_sel && ismember(sel,delete_configs)
+        if delete_sel && ismember(sel,delete_configs) %#ok<NODEF>
             % Delete data from database/table
             switch save_data.priority
                 case "mysql"
@@ -282,9 +273,9 @@ if ~skip_simulations
         if use_parellelization
 
             % Go through each settings profile
+            model_settings = model_settings; %#ok<ASGSL>
+            delete_configs = delete_configs; %#ok<ASGSL>
             parfor primvar_sel = 1:prvr_len
-
-
                 for sel = 1:conf_len
 
                     % Continue to simulate if need more frames
@@ -306,6 +297,7 @@ if ~skip_simulations
  
                         % Print message
                         progress_bar_data = result_parameters_inst;
+                        progress_bar_data.model_settings = model_settings;
                         progress_bar_data.profile_sel = profile_sel;
                         progress_bar_data.configs = lc;
                         progress_bar_data.primary_vals = primary_vals;
@@ -313,7 +305,6 @@ if ~skip_simulations
                         progress_bar_data.num_iters = num_frames;
                         progress_bar_data.iter = iter;
                         progress_bar_data.primvar_sel = primvar_sel;
-                        progress_bar_data.sel = sel;
                         progress_bar_data.prvr_len = prvr_len;
                         progress_bar_data.conf_len = conf_len;
                         progress_bar_data.current_frames = iter;
@@ -352,6 +343,7 @@ if ~skip_simulations
 
                         % Print message
                         progress_bar_data = result_parameters_inst;
+                        progress_bar_data.model_settings = model_settings;
                         progress_bar_data.profile_sel = profile_sel;
                         progress_bar_data.configs = line_configs;
                         progress_bar_data.primary_vals = primary_vals;
@@ -359,7 +351,6 @@ if ~skip_simulations
                         progress_bar_data.num_iters = num_frames;
                         progress_bar_data.iter = iter;
                         progress_bar_data.primvar_sel = primvar_sel;
-                        progress_bar_data.sel = sel;
                         progress_bar_data.prvr_len = prvr_len;
                         progress_bar_data.conf_len = conf_len;
                         progress_bar_data.current_frames = iter;

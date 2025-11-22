@@ -12,7 +12,7 @@ data_path = "Data";
 figures_path = "Figures";
 
 % Controls
-profile_sel = 3;
+profile_sel = 4;
 line_val = 2;
 mark_val = 10;
 font_val = 16;
@@ -180,7 +180,7 @@ f_range = 0:1/window_duration:frequency_limit-1/window_duration;
 
 % Set figure info
 xlim_vec_psd = [0 5];
-ylim_vec_psd = [-50 0];
+ylim_vec_psd = [-30 0];
 
 % Set up figure
 figure(1)
@@ -199,8 +199,8 @@ for k = 1:2
     end
 
     % Create new frequency-separated samples
-    block = vertcat(windows{:});
-    psd = (sum(block,1) / size(block,1)).^2;
+    block = vertcat(windows{:}).^2;
+    psd = (sum(block,1) / size(block,1));
     plot(f_range,10*log10(psd),Color=linecolor,linewidth=line_val,LineStyle="-")
 
 end
@@ -232,8 +232,8 @@ elseif profile_sel == 3
     xlim_vec = [0 3];
     ylim_vec = [0 1];
 elseif profile_sel == 4
-    frequency_sel =  1.6;
-    xlim_vec = [0 1];
+    frequency_sel =  1.4;
+    xlim_vec = [0 3.5];
     ylim_vec = [0 1];
 end
 index = round(frequency_sel * window_duration) + 1;
@@ -309,7 +309,7 @@ elseif profile_sel == 4
         Location="southeast")
 end
 
-%% One-Way MANOVA Test
+%% Canonical Correlation Analysis
 
 p_val = zeros(3,1);
 tbl = zeros(3,1);
@@ -340,8 +340,34 @@ for j = 1:length(signal_sel)
     [p_val(j), tbl(j), stats{j}] = manova1(all_block, group_labels);
 
     % Conduct Canonical Correlation Analysis
-    [A,B,r,U,V] = canoncorr(all_block,group_labels);
+    [A,B,r,U,V] = canoncorr(resu_block,hypo_block(1:2123,:));
     r_tbl(j) = r(1);
+
+    t = tiledlayout(2,2);
+    title(t,'Canonical Scores of X vs Canonical Scores of Y')
+    xlabel(t,'Canonical Variables of X')
+    ylabel(t,'Canonical Variables of Y')
+    t.TileSpacing = 'compact';
+
+    nexttile
+    plot(U(:,1),V(:,1),'.')
+    xlabel('u1')
+    ylabel('v1')
+
+    nexttile
+    plot(U(:,2),V(:,1),'.')
+    xlabel('u2')
+    ylabel('v1')
+
+    nexttile
+    plot(U(:,1),V(:,2),'.')
+    xlabel('u1')
+    ylabel('v2')
+
+    nexttile
+    plot(U(:,2),V(:,2),'.')
+    xlabel('u2')
+    ylabel('v2')
 
 end
 
@@ -361,6 +387,7 @@ p_vals = cell(length(signal_sel),1);
 ks_test_stat = cell(length(signal_sel),1);
 log_p_vals = cell(length(signal_sel),1);
 log_ks_test = cell(length(signal_sel),1);
+mv_ks_tests = cell(1,length(signal_sel));
 for j = 1:length(signal_sel)
 
     % Select data for each window
@@ -385,7 +412,10 @@ for j = 1:length(signal_sel)
     resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
     hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
 
-    % Test the samples using KS two-sample testj
+    % Generate two-sample multivariate KS test statistic
+    mv_ks_tests{j} = mv_kstest2(resu_block,hypo_block);
+
+    % Test the samples using KS two-sample test
     [~,p_vals{j},ks_test_stat{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
     log_p_vals{j} = log10(p_vals{j});
     log_ks_test{j} = (ks_test_stat{j});
@@ -396,9 +426,81 @@ for j = 1:length(signal_sel)
 
 end
 
-% Finish figure setup
+% Finish Univariate KS figure setup
 grid on
 xlabel("Frequency (Hz)")
 ylabel("Dist. between Empirical CDFs")
 set(gca, 'FontSize', font_val);
 legend("Raw-PVP","IPFM-PVP","IPFM-HB",Location="northeast")
+
+clc
+% Display results for multivariate KS test
+figure(20)
+hold on
+grid on
+mv_ks_vals = zeros(length(signal_sel),1);
+for i = 1:length(signal_sel)
+
+    % Select data for each window
+    switch i
+        case 1
+            linecolor = "#da1e28";
+            linestyle = "-";
+            linemarker = "o";
+        case 2
+            linecolor = "#0f62fe";
+            linestyle = "-";
+            linemarker = "^";
+        case 3
+            linecolor = "#198038";
+            linestyle = "-";
+            linemarker = "*";
+    end
+
+    plot(mv_ks_tests{i}, Color=linecolor,LineStyle=linestyle,LineWidth=line_val)
+
+    mv_ks_vals(i) = max(mv_ks_tests{i});
+    fprintf("Two-Sample Multivariate KS Test Statistic for %s: %.4f\n",signal_sel(i),mv_ks_vals(i))
+end
+% plot([size(resu_block,1) size(resu_block,1)], [10000 10000])
+set(gca, 'YScale', 'log')
+xlabel("Sample from Z")
+ylabel("Dist. between Empirical CDFs")
+legend("Raw-PVP","IPFM-PVP","IPFM-HB",Location="northwest")
+
+
+
+
+function D = mv_kstest2(X,Y)
+
+% Import sizes and test compatibility
+[nx,k] = size(X);
+[ny,k2] = size(Y);
+if k ~= k2
+    error("x1 and x2 must have same number of features (columns).")
+end
+
+% Combine matrices
+Z = [X; Y];
+N = nx + ny;
+
+% Find cumulative statistic for each feature
+D = zeros(k,1);
+for i = 1:N
+
+    % Select i-th row of all samples
+    z_sel = Z(i,:);
+
+    % Take lesser than or equal to operations of X and Y
+    leX = all(X <= z_sel,2);
+    leY = all(Y <= z_sel,2);
+
+    % Find CDF value for FX and FY given z_sel
+    FX = mean(leX);
+    FY = mean(leY);
+
+    % Update test statistic if difference is found
+    D(i) = abs(FX - FY);
+    
+end
+end

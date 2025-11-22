@@ -62,40 +62,25 @@ end
 if run_flag
 
     % Make parameters
-    try
-        training_percentage = parameters.training_percentage;
-    catch
-        training_percentage = 0.7;
-    end
-    try
-        cv_spec = parameters.cv_spec;
-    catch
-        cv_spec = 5;
-    end
-    try
-        max_iterations = parameters.max_iterations;
-    catch
-        max_iterations = 1e8;
-    end
     window_duration = parameters.window_duration;
     frequency_limit = parameters.frequency_limit;
-    alpha = parameters.alpha;
     training_type = parameters.training_type;
     split_by = parameters.split_by;
     tshift = parameters.tshift;
     drop_DC_component = parameters.drop_DC_component;
     normalize_power = parameters.normalize_power;
-    try
-        randomize_training = parameters.randomize_training;
-    catch
-        randomize_training = false;
-    end
-    try
-        pca_method = parameters.pca_method;
+
+    % Include new parameters
+    model_type = parameters.model_type;
+    fft_type = parameters.fft_type;
+    training_percentage = parameters.training_percentage;
+    randomize_training = parameters.randomize_training;
+    pca_method = parameters.pca_method;
+    if pca_method ~= "none"
         pca_sigma_threshold = parameters.pca_sigma_threshold;
-    catch
-        pca_method = "none";
     end
+    log1p_regularization = parameters.log1p_regularization;
+    data_centering = parameters.data_centering;
 
     % Load dataset
     [data,sample_rate] = load_dataset(parameters);
@@ -124,11 +109,6 @@ if run_flag
     [~, ~, Yi] = unique(Yi, 'stable');
     classes = unique(Yi);
     Yi = Yi - 1;
-    if length(unique(Yi)) > 2
-        model_type = "ordinal";
-    else
-        model_type = "elastic";
-    end
 
     % fprintf("Testing model...\n")
     win_spec = zeros(patients_tested,length(classes));
@@ -180,10 +160,10 @@ if run_flag
                             training_locs = 1:round(length(patient_sigs)*training_percentage);
                         end
                         testing_locs = detection_range(~ismember(detection_range,training_locs));
-                        training_sigs = [training_sigs; patient_sigs(training_locs)];
-                        testing_sigs = [testing_sigs; patient_sigs(testing_locs)];
-                        Yi_training = [Yi_training; (k-1)*ones(length(training_locs),1)];
-                        Yi_testing = [Yi_testing; (k-1)*ones(length(testing_locs),1)];
+                        training_sigs = [training_sigs; patient_sigs(training_locs)]; %#ok<AGROW>
+                        testing_sigs = [testing_sigs; patient_sigs(testing_locs)]; %#ok<AGROW>
+                        Yi_training = [Yi_training; (k-1)*ones(length(training_locs),1)]; %#ok<AGROW>
+                        Yi_testing = [Yi_testing; (k-1)*ones(length(testing_locs),1)]; %#ok<AGROW>
                     end
 
                 case "signal"
@@ -213,8 +193,8 @@ if run_flag
         end
 
         % Create f-windows
-        fwindows_train = cellfun(@(x) fft_rhys(x,sample_rate,frequency_limit,window_duration),twindows_train,'UniformOutput',false);
-        fwindows_test = cellfun(@(x) fft_rhys(x,sample_rate,frequency_limit,window_duration),twindows_test,'UniformOutput',false);
+        fwindows_train = cellfun(@(x) fft_rhys(x,sample_rate,frequency_limit,window_duration,fft_type),twindows_train,'UniformOutput',false);
+        fwindows_test = cellfun(@(x) fft_rhys(x,sample_rate,frequency_limit,window_duration,fft_type),twindows_test,'UniformOutput',false);
 
         % Create locations for test patient data
         test_lengths = cellfun(@(x) size(x,1),fwindows_test,"UniformOutput",false);
@@ -243,8 +223,18 @@ if run_flag
             fwindows_test_block = fwindows_test_block ./ sqrt(row_powers);
         end
 
+        % Use log(x+1) instead of x as training/testing data
+        if log1p_regularization
+            fwindows_train_block = log1p(fwindows_train_block);
+            fwindows_test_block  = log1p(fwindows_test_block);
+        end
+
         % Remove smaller singular values from the data
         if pca_method ~= "none"
+            if ~exist("pca_sigma_threshold","var")
+                error("Must specify explained variance ratio threshold for PCA data reduction.")
+            end
+
             % Normalize training data
             mu = mean(fwindows_train_block);
             sigma = std(fwindows_train_block);
@@ -335,6 +325,14 @@ if run_flag
                 fwindows_test_block = X_testing * V(:, 1:K);
             end
 
+        else
+            if data_centering
+                % Normalize training data
+                mu = mean(fwindows_train_block);
+                sigma = std(fwindows_train_block);
+                fwindows_train_block = (fwindows_train_block - mu) ./ sigma;
+                fwindows_test_block = (fwindows_test_block - mu) ./ sigma;
+            end
         end
 
         % Serialize to JSON for DB
@@ -345,92 +343,28 @@ if run_flag
         paramsJSON_model  = jsonencode_sorted(parameters_model);
         paramHash_model = string(DataHash(paramsJSON_model,'SHA-256'));
 
-        % Load model
-        try
-            if randomize_training
-                error("Randomized training doesn't save models.")
-            elseif delete_model
-                error("Model must be remade for deleted configurations.")
-            else
-                % Try to load file
-                models = load((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))));
-                beta = models.beta;
-                theta = models.theta;
-                test_probs = models.test_probs;
-                true_labels = models.true_labels;
-
-                % Temporary conversion - remove after all old data is gone
-                if ~iscell(test_probs)
-                    test_probs = {test_probs};
-                    save((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))),"beta","theta","test_probs","true_labels");
-                end
-
-                if size(models.beta,2) < iter
-                    switch model_type
-                        case "elastic"
-                            % Find best fit for data using training data
-                            [beta_lasso,fit] = lassoglm(fwindows_train_block,Yi_train_vec,'binomial','NumLambda',10,'CV',cv_spec,'Alpha',alpha,'MaxIter',max_iterations);
-
-                            % Add first element of beta
-                            beta_0 = fit.Intercept;
-                            indx = fit.IndexMinDeviance;
-                            beta(:,iter) = [beta_0(indx);beta_lasso(:,indx)];
-                            theta(1,iter) = NaN;
-                        case "ordinal"
-                            % Train model
-                            model = fitOrdinalRegression(fwindows_train_block,Yi_train_vec+1,length(unique(Yi)));
-                            beta(:,iter) = model.beta;
-                            theta(:,iter) = model.theta;
-                    end
-
-                    % Test data
-                    test_probs{iter} = regression_test(model_type,fwindows_test_block,beta,theta);
-                    true_labels(:,iter) = Yi_test_vec;
-
-                    % Save data file
-                    save((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))),"beta","theta","test_probs","true_labels");
-                    beta = beta(:,iter);
-                % else
-                %     beta = models.beta(:,iter);
-                %     theta = theta(:,iter);
-                end
-            end
-        catch
-            switch model_type
-                case "elastic"
-                    % Find best fit for data using training data
-                    [beta_lasso,fit] = lassoglm(fwindows_train_block,Yi_train_vec,'binomial','NumLambda',10,'CV',cv_spec,'Alpha',alpha,'MaxIter',max_iterations);
-
-                    % Add first element of beta
-                    beta_0 = fit.Intercept;
-                    indx = fit.IndexMinDeviance;
-                    beta = [beta_0(indx);beta_lasso(:,indx)];
-                    theta = NaN;
-                case "ordinal"
-                    % Train model
-                    model = ordinalglm(fwindows_train_block,Yi_train_vec+1,length(unique(Yi)));
-                    beta = model.beta;
-                    theta = model.theta;
-            end
-
-            % Test data
-            test_probs{iter} = regression_test(model_type,fwindows_test_block,beta,theta);
-            true_labels = Yi_test_vec;
-
-            if ~randomize_training
-                % Save data file
-                save((fullfile(load_path, sprintf("model_%s.mat",paramHash_model))),"beta","theta","test_probs","true_labels");
-            end
+        % TRAIN MODEL
+        model_dataset.fwindows_train_block = fwindows_train_block;
+        model_dataset.fwindows_test_block = fwindows_test_block;
+        model_dataset.Yi_train_vec = Yi_train_vec;
+        model_dataset.Yi_test_vec = Yi_test_vec;
+        model_info.paramHash_model = paramHash_model;
+        model_info.load_path = load_path;
+        model_info.delete_model = delete_model;
+        switch model_type
+            case "lrm"
+                test_probs = train_lrm(model_dataset,model_info,parameters,iter);
+            case "tree"
+                test_probs = train_tree(model_dataset,model_info,parameters,iter);
+            case "nn-mlp"
+                test_probs = train_nn_mlp(model_dataset,model_info,parameters,iter);
+            case "nn-cnn1d"
+                test_probs = train_nn_cnn1d(model_dataset,model_info,parameters,iter);
         end
 
         % Get window-level probabilities
-        switch model_type
-            case "elastic"
-                Yhat_test_vec = (test_probs{iter} > 0.5) * 1;
-            case "ordinal"
-                [~,Yhat_test_vec] = max(test_probs{iter},[],2);
-                Yhat_test_vec = Yhat_test_vec - 1;
-        end
+        [~,Yhat_test_vec] = max(test_probs{iter},[],2);
+        Yhat_test_vec = Yhat_test_vec - 1;
 
         % Get window-level measurements measurements
         win_conmat_inst = confusionmat(Yi_test_vec,Yhat_test_vec, 'Order', classes-1);
@@ -447,16 +381,8 @@ if run_flag
 
         % Get patient-level measurements
         if single_patient_testing
-            switch model_type
-                case "elastic"
-                    patient_yhat = mean(Yhat_test_vec);
-                    Yi_hat = patient_yhat > 0.5;
-                case "ordinal"
-                    Yi_hat = mode(Yhat_test_vec);
-            end
+            Yi_hat = mode(Yhat_test_vec);
             pat_accy(patient_sel) = Yi_hat == Yi(patient_sel);
-            % pat_sens(patient_sel,:) = nan(1,length(classes));
-            % pat_spec(patient_sel,:) = nan(1,length(classes));
         else
             Yi_hat = zeros(length(data_master),1);
             for k = 1:length(data_master)
@@ -465,14 +391,7 @@ if run_flag
                 if isempty(patient_indices)
                     continue;
                 end
-
-                switch model_type
-                    case "elastic"
-                        patient_yhat = mean(Yhat_test_vec(patient_indices));
-                        Yi_hat(k) = patient_yhat > 0.5;
-                    case "ordinal"
-                        Yi_hat(k) = mode(Yhat_test_vec(patient_indices));
-                end
+                Yi_hat(k) = mode(Yhat_test_vec(patient_indices));
             end
 
             % Get accuracy measurements

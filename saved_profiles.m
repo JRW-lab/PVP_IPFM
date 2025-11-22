@@ -1,12 +1,42 @@
 function [all_profiles,profile_names] = saved_profiles()
+% Here are the supported models with some default settings:
+%
+% p.model_settings = struct(...
+%     'model_type', "lrm",...
+%     'alpha', 0.5,...
+%     'cv_spec', 5,...
+%     'max_iterations', 1e8);
+%
+% p.model_settings = struct(...
+%     'model_type', "tree",...
+%     'num_trees', 100);
+%
+% p.model_settings = struct(...
+%     'model_type', "nn-mlp",...
+%     'cv_spec', 5,...
+%     'max_fail', 6,...
+%     'min_grad', 1e-7,...
+%     'hidden_neurons', 64,...
+%     'backprop_func', 'trainscg',...
+%     'L2_regularization', 1e-4,...
+%     'max_epochs', 200);
+%
+% p.model_settings = struct(...
+%     'model_type', "nn-cnn1d",...
+%     'cv_spec', 5,...
+%     'max_epochs', 500,...
+%     'num_filters', 64,...
+%     'learning_rate', 1e-2);
 
 % Initialize cell array of profiles
 all_profiles = cell(0);
 profile_names = cell(0);
 
 %% PROFILE 1
-profile_name = "Human, R/H - AB vs BB";
+profile_name = "Human, R/H - BB Neural Nets";
 p = struct;
+p.primary_var = "frequency_limit";
+p.primary_vals = 0.4:0.05:0.65;
 p.data_defaults = struct(...
     'dataset', "Human", ...
     'signal_sel', "raw_signal", ...
@@ -17,46 +47,58 @@ p.data_groups = {
     struct("hypovolemic", "R")
     struct("hypovolemic", "H")
     };
+% p.model_settings = struct(...
+%     'model_type', "tree",...
+%     'num_trees', 200);
+% p.model_settings = struct(...
+%     'model_type', "nn-mlp",...
+%     'cv_spec', 5,...
+%     'max_fail', 6,...
+%     'min_grad', 1e-7,...
+%     'hidden_neurons', 64,...
+%     'backprop_func', 'trainscg',...
+%     'L2_regularization', 1e-4,...
+%     'max_epochs', 200);
+p.model_settings = struct(...
+    'model_type', "nn-cnn1d",...
+    'cv_spec', 5,...
+    'max_epochs', 500,...
+    'num_filters', 64,...
+    'learning_rate', 1e-2);
 p.model_parameters = struct(...
     'window_duration', 10, ...
     'frequency_limit', 30, ...
-    'alpha', 0.5, ...
     'training_type', "percentage", ...
+    'training_percentage', 0.7,...
+    'randomize_training',false,...
     'split_by', "signal", ...
     'tshift', 1, ...
     'drop_rho_below', 0, ...
-    'drop_DC_component', true, ...
-    'normalize_power', true);
+    'drop_DC_component', false, ...
+    'normalize_power', false,...
+    'pca_method', "none",...
+    'pca_sigma_threshold', 0,...
+    'fft_type',"all",...
+    'log1p_regularization', false,...
+    'data_centering', false);
 p.line_configs = {
-    struct('signal_sel', "raw_signal", 'bolus_type', "BB")
-    struct('signal_sel', "raw_signal", 'bolus_type', "AB")
-    struct('signal_sel', "IPFM_signal", 'bolus_type', "BB")
-    struct('signal_sel', "IPFM_signal", 'bolus_type', "AB")
-    struct('signal_sel', "EHR_signal", 'bolus_type', "BB")
-    struct('signal_sel', "EHR_signal", 'bolus_type', "AB")
+    struct('signal_sel', "raw_signal")
+    struct('signal_sel', "IPFM_signal")
+    struct('signal_sel', "EHR_signal")
     };
 p.legend_vec = {
-    "Raw PVP, BB"
-    "Raw PVP, AB"
-    "IPFM-PVP, BB"
-    "IPFM-PVP, AB"
-    "IPFM-HB, BB"
-    "IPFM-HB, AB"
+    "Raw PVP"
+    "IPFM-PVP"
+    "IPFM-HB"
     };
 p.line_styles = {
     "-o"
-    "--o"
     "-x"
-    "--x"
     "-v"
-    "--v"
     };
 p.line_colors = {
     "#FF0000"
-    "#FF0000"
     "#0F62FE"
-    "#0F62FE"
-    "#24A249"
     "#24A249"
     };
 p.delete_configs = [];
@@ -186,90 +228,25 @@ p.line_colors = {
 p.delete_configs = [];
 p.legend_loc = "southeast";
 p.xlim_vec = [0 0.3];
-p.ylim_vec = [0.6 1];
+p.ylim_vec = [0.7 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
 
 %% PROFILE 4
-profile_name = "Human, R/H - Patient split (rho >= 0.9)";
+profile_name = "Pig, PRO/MAC - 5/10s Windows";
 p = struct;
+p.primary_var = "frequency_limit";
+p.primary_vals = [];
 p.data_defaults = struct(...
-    'dataset', "Human", ...
+    'dataset', "Pig", ...
     'signal_sel', "raw_signal", ...
-    'labels', struct("bolus_type", "BB", ...
-    "hypovolemic", "R"), ...
+    'labels', struct("anesthetic_type", ["MAC","PRO"], ...
+                     "anesthetic_level", [1,2,3], ...
+                     "bleeding", "S"), ...
     'exclude_patients', []);
 p.data_groups = {
-    struct("hypovolemic", "R")
-    struct("hypovolemic", "H")
-    };
-p.model_parameters = struct(...
-    'window_duration', 10, ...
-    'frequency_limit', 30, ...
-    'alpha', 0.5, ...
-    'training_type', "percentage", ...
-    'split_by', "patient", ...
-    'randomize_training', true, ...
-    'tshift', 1, ...
-    'drop_rho_below', 0.9, ...
-    'drop_DC_component', true, ...
-    'normalize_power', true);
-p.line_configs = {
-    struct('signal_sel', "raw_signal")
-    struct('signal_sel', "IPFM_signal")
-    struct('signal_sel', "EHR_signal")
-    };
-p.legend_vec = {
-    "Raw PVP"
-    "IPFM-PVP"
-    "IPFM-EHR"
-    };
-p.line_styles = {
-    "-o"
-    % "--x"
-    "-o"
-    % "--x"
-    "-o"
-    % "--x"
-    };
-p.line_colors = {
-    "#FF0000"
-    % "#FF0000"
-    "#0F62FE"
-    % "#0F62FE"
-    "#24A249"
-    % "#24A249"
-    };
-p.delete_configs = [1,2,3];
-p.legend_loc = "northeast";
-p.xlim_vec = [0 0.3];
-p.ylim_vec = [0.5 1];
-all_profiles = [all_profiles p];
-profile_names = [profile_names profile_name];
-
-%% PROFILE 5
-profile_name = "Pig, Stable Blood Level Test";
-p = struct;
-p.data_defaults = struct(...
-    'dataset', "Pilot Pig", ...
-    'signal_sel', "raw_signal", ...
-    'labels', struct("bleeding", ["S","B"], ...
-                     "max_TBV_loss", 0:5:25), ...
-    'exclude_patients', []);
-p.data_groups = {
-    % struct("max_TBV_loss", [0,5])
-    % struct("max_TBV_loss", [10,15])
-    % struct("max_TBV_loss", [20,25])
-
-    % struct("bleeding", "S")
-    % struct("bleeding", "B")
-
-    % struct("max_TBV_loss", 0)
-    % struct("max_TBV_loss", 5)
-    % struct("max_TBV_loss", 10)
-    % struct("max_TBV_loss", 15)
-    % struct("max_TBV_loss", 20)
-    % struct("max_TBV_loss", 25)
+    struct("anesthetic_type", "PRO")
+    struct("anesthetic_type", "MAC")
     };
 p.model_parameters = struct(...
     'window_duration', 10, ...
@@ -277,44 +254,130 @@ p.model_parameters = struct(...
     'alpha', 0.5, ...
     'training_type', "percentage", ...
     'split_by', "signal", ...
+    'randomize_training', false, ...
     'tshift', 1, ...
     'drop_rho_below', 0, ...
-    'drop_DC_component', true, ...
-    'normalize_power', true, ...
+    'drop_DC_component', false, ...
+    'normalize_power', false, ...
     'training_percentage', 0.7,...
     'cv_spec', 5,...
-    'max_iterations', 1e8);
+    'max_iterations', 1e8,...
+    'pca_method', "none",...
+    'pca_sigma_threshold', 0);
 p.line_configs = {
-    struct('signal_sel', "raw_signal")
-    struct('signal_sel', "IPFM_signal")
-    struct('signal_sel', "EHR_signal")
+    struct('signal_sel', "raw_signal", 'window_duration', 10)
+    struct('signal_sel', "raw_signal", 'window_duration', 5)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 10)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 5)
+    struct('signal_sel', "EHR_signal", 'window_duration', 10)
+    struct('signal_sel', "EHR_signal", 'window_duration', 5)
     };
 p.legend_vec = {
-    "Raw PVP"
-    "IPFM-PVP"
-    "IPFM-EHR"
+    "Raw PVP, 10s windows"
+    "Raw PVP, 5s windows"
+    "IPFM-PVP, 10s windows"
+    "IPFM-PVP, 5s windows"
+    "IPFM-HB, 10s windows"
+    "IPFM-HB, 5s windows"
     };
 p.line_styles = {
     "-o"
-    "-o"
-    "-o"
+    "--o"
+    "-x"
+    "--x"
+    "-v"
+    "--v"
     };
 p.line_colors = {
     "#FF0000"
+    "#FF0000"
     "#0F62FE"
+    "#0F62FE"
+    "#24A249"
     "#24A249"
     };
 p.delete_configs = [];
 p.legend_loc = "southeast";
 p.xlim_vec = [0 0.3];
-p.ylim_vec = [0 1];
+p.ylim_vec = [0.7 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 5
+profile_name = "Pig, S/B - 5/10s Windows";
+p = struct;
+p.primary_var = "frequency_limit";
+p.primary_vals = [];
+p.data_defaults = struct(...
+    'dataset', "Pig", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("anesthetic_type", "PRO", ...
+                     "anesthetic_level", 4, ...
+                     "bleeding", "S"), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("bleeding", "S")
+    struct("bleeding", "B")
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'randomize_training', false, ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', false, ...
+    'normalize_power', false, ...
+    'training_percentage', 0.7,...
+    'cv_spec', 5,...
+    'max_iterations', 1e8,...
+    'pca_method', "none",...
+    'pca_sigma_threshold', 0);
+p.line_configs = {
+    struct('signal_sel', "raw_signal", 'window_duration', 10)
+    struct('signal_sel', "raw_signal", 'window_duration', 5)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 10)
+    struct('signal_sel', "IPFM_signal", 'window_duration', 5)
+    struct('signal_sel', "EHR_signal", 'window_duration', 10)
+    struct('signal_sel', "EHR_signal", 'window_duration', 5)
+    };
+p.legend_vec = {
+    "Raw PVP, 10s windows"
+    "Raw PVP, 5s windows"
+    "IPFM-PVP, 10s windows"
+    "IPFM-PVP, 5s windows"
+    "IPFM-HB, 10s windows"
+    "IPFM-HB, 5s windows"
+    };
+p.line_styles = {
+    "-o"
+    "--o"
+    "-x"
+    "--x"
+    "-v"
+    "--v"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#FF0000"
+    "#0F62FE"
+    "#0F62FE"
+    "#24A249"
+    "#24A249"
+    };
+p.delete_configs = 1:6;
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.5];
+p.ylim_vec = [0.5 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
 
 %% PROFILE 6
-profile_name = "Pig, Stable Blood Level Test (PCA)";
+profile_name = "Pig, Stable/Bleeding Test (PCA)";
 p = struct;
-p.figure_var = "pca_sigma_threshold";
+p.primary_var = "pca_sigma_threshold";
 p.primary_vals = 0.3:0.05:0.65;
 p.data_defaults = struct(...
     'dataset', "Pilot Pig", ...
@@ -323,19 +386,8 @@ p.data_defaults = struct(...
                      "max_TBV_loss", 0:5:25), ...
     'exclude_patients', []);
 p.data_groups = {
-    struct("max_TBV_loss", [0,5])
-    struct("max_TBV_loss", [10,15])
-    struct("max_TBV_loss", [20,25])
-
-    % struct("bleeding", "S")
-    % struct("bleeding", "B")
-
-    % struct("max_TBV_loss", 0)
-    % struct("max_TBV_loss", 5)
-    % struct("max_TBV_loss", 10)
-    % struct("max_TBV_loss", 15)
-    % struct("max_TBV_loss", 20)
-    % struct("max_TBV_loss", 25)
+    struct("bleeding", "S")
+    struct("bleeding", "B")
     };
 p.model_parameters = struct(...
     'window_duration', 10, ...
@@ -360,7 +412,7 @@ p.line_configs = {
 p.legend_vec = {
     "Raw PVP"
     "IPFM-PVP"
-    "IPFM-EHR"
+    "IPFM-HB"
     };
 p.line_styles = {
     "-o"
@@ -376,5 +428,132 @@ p.delete_configs = [];
 p.legend_loc = "southeast";
 p.xlim_vec = [0 0.5];
 p.ylim_vec = [0 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 7
+profile_name = "Pig, 0:5:25 TBV Loss Test (PCA)";
+p = struct;
+p.primary_var = "pca_sigma_threshold";
+p.primary_vals = 0.3:0.05:0.65;
+p.data_defaults = struct(...
+    'dataset', "Pilot Pig", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bleeding", ["S","B"], ...
+                     "max_TBV_loss", 0:5:25), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("max_TBV_loss", 0)
+    struct("max_TBV_loss", 5)
+    struct("max_TBV_loss", 10)
+    struct("max_TBV_loss", 15)
+    struct("max_TBV_loss", 20)
+    struct("max_TBV_loss", 25)
+    };
+p.label_names = {
+    struct("max_TBV_loss", 0)
+    struct("max_TBV_loss", 5)
+    struct("max_TBV_loss", 10)
+    struct("max_TBV_loss", 15)
+    struct("max_TBV_loss", 20)
+    struct("max_TBV_loss", 25)
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true, ...
+    'training_percentage', 0.7,...
+    'cv_spec', 5,...
+    'max_iterations', 1e8,...
+    'pca_method', "kpca",...
+    'pca_sigma_threshold', 0.65);
+p.line_configs = {
+    struct('signal_sel', "raw_signal")
+    struct('signal_sel', "IPFM_signal")
+    struct('signal_sel', "EHR_signal")
+    };
+p.legend_vec = {
+    "Raw PVP"
+    "IPFM-PVP"
+    "IPFM-HB"
+    };
+p.line_styles = {
+    "-o"
+    "-x"
+    "-v"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#0F62FE"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.3];
+p.ylim_vec = [0.7 1];
+all_profiles = [all_profiles p];
+profile_names = [profile_names profile_name];
+
+%% PROFILE 8
+profile_name = "Pig, 0-5/10-15/20-25 TBV Loss Test (PCA)";
+p = struct;
+p.primary_var = "pca_sigma_threshold";
+p.primary_vals = 0.3:0.05:0.65;
+p.data_defaults = struct(...
+    'dataset', "Pilot Pig", ...
+    'signal_sel', "raw_signal", ...
+    'labels', struct("bleeding", ["S","B"], ...
+                     "max_TBV_loss", 0:5:25), ...
+    'exclude_patients', []);
+p.data_groups = {
+    struct("max_TBV_loss", [0,5])
+    struct("max_TBV_loss", [10,15])
+    struct("max_TBV_loss", [20,25])
+    };
+p.model_parameters = struct(...
+    'window_duration', 10, ...
+    'frequency_limit', 30, ...
+    'alpha', 0.5, ...
+    'training_type', "percentage", ...
+    'split_by', "signal", ...
+    'tshift', 1, ...
+    'drop_rho_below', 0, ...
+    'drop_DC_component', true, ...
+    'normalize_power', true, ...
+    'training_percentage', 0.7,...
+    'cv_spec', 5,...
+    'max_iterations', 1e8,...
+    'pca_method', "kpca",...
+    'pca_sigma_threshold', 0.65);
+p.line_configs = {
+    struct('signal_sel', "raw_signal")
+    struct('signal_sel', "IPFM_signal")
+    struct('signal_sel', "EHR_signal")
+    };
+p.legend_vec = {
+    "Raw PVP"
+    "IPFM-PVP"
+    "IPFM-HB"
+    };
+p.line_styles = {
+    "-o"
+    "-x"
+    "-v"
+    };
+p.line_colors = {
+    "#FF0000"
+    "#0F62FE"
+    "#24A249"
+    };
+p.delete_configs = [];
+p.legend_loc = "southeast";
+p.xlim_vec = [0 0.1];
+p.ylim_vec = [0.9 1];
 all_profiles = [all_profiles p];
 profile_names = [profile_names profile_name];
