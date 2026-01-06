@@ -59,7 +59,7 @@ for i = 1:length(line_configs)
     probs_all = vertcat(test_probs{:});
     true_labels = repmat(true_labels,N,1);
 
-    if size(probs_all,2) > 1
+    if size(probs_all,2) > 2
         % Define number of labels
         num_labels = size(probs_all,2);
 
@@ -111,7 +111,7 @@ for i = 1:length(line_configs)
         if i == 1
             hold on
         end
-        [X,Y] = perfcurve(true_labels, probs_all, 1);
+        [X,Y] = perfcurve(true_labels, probs_all(:,2), 1);
         [~,marker_indices] = arrayfun(@(x) min(abs(X-x)), marker_space);
         plot(X,Y, ...
             line_styles{i}, ...
@@ -127,9 +127,10 @@ end
 % % Add a line for the random estimator
 % plot([0 1],[0 1], "-.",LineWidth=line_val,Color="#4589ff")
 
-if size(probs_all,2) == 1
+if size(probs_all,2) == 2
 
     % Set figure settings
+    plot([0 1], [0 1], "--k",LineWidth=line_val)
     xlabel(xlabel_name)
     xlim(xlim_vec)
     ylabel(ylabel_name)
@@ -137,6 +138,8 @@ if size(probs_all,2) == 1
     grid on
     legend(legend_vec,Location=loc);
     set(gca, 'FontSize', font_val);
+    set(gca, 'Box', 'on');
+    set(gca, 'LineWidth', line_val);
 
     % Save figure
     timestamp = datetime('now', 'Format', 'yyyyMMdd_HHmmss');

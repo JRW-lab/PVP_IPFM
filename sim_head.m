@@ -26,7 +26,7 @@ num_frames = app_settings.num_frames;
 % Introduce, set up connection to MySQL server
 addpath(fullfile(pwd, 'Common Functions'));
 addpath(fullfile(pwd, 'Functions'));
-javaaddpath('mysql-connector-j-8.4.0.jar');
+addMysqlJarOnce();
 save_data.excel_folder = 'Data';
 save_data.excel_name = table_name;
 save_data.excel_path = fullfile(save_data.excel_folder,save_data.excel_name + ".xlsx");
@@ -64,7 +64,7 @@ figure_data.save_sel = true;
 
 % Set up ranges
 if data_view == "figure"
-    if primary_var == "frequency_limit"
+    if primary_var == "frequency_limit" %#ok<NODEF>
         primary_vals = 5:5:max_freq;
     else
         primary_vals = p_sel.primary_vals;
@@ -170,7 +170,7 @@ for primvar_sel = 1:prvr_len
         % Create overall parameters
         model_parameters_inst = model_parameters;
         result_parameters = mergestructs(data_defaults,model_parameters_inst);
-        result_parameters = mergestructs(result_parameters,model_settings);
+        result_parameters = mergestructs(result_parameters,model_settings); %#ok<NODEF>
         result_parameters.(primary_var) = primvar_val;
 
         % Overwrite settings with config setting
@@ -192,6 +192,7 @@ for primvar_sel = 1:prvr_len
         end
 
         % Remove redundancy
+
         if result_parameters.pca_method == "none"
             result_parameters = rmfield(result_parameters,"pca_sigma_threshold");
         else
