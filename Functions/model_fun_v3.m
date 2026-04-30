@@ -89,7 +89,6 @@ if run_flag
     % Set parameters
     if training_type == "patient"
         single_patient_testing = true;
-        parameters = rmfield(parameters,"randomize_training");
         patients_tested = length(data_master);
     elseif training_type == "percentage"
         single_patient_testing = false;
@@ -119,6 +118,7 @@ if run_flag
     pat_sens = zeros(1,length(classes));
     pat_accy = zeros(patients_tested,1);
     pat_conmat = zeros(length(classes));
+    t_training = zeros(patients_tested,1);
     for patient_sel = 1:patients_tested
 
         % Generate t-windows for all desired signals and data types
@@ -336,12 +336,16 @@ if run_flag
         end
 
         % Serialize to JSON for DB
-        parameters_model = parameters;
+        % parameters_model = parameters;
+        % if single_patient_testing
+        %     parameters_model.patient_sel = patient_sel;
+        % end
+        % paramsJSON_model  = jsonencode_sorted(parameters_model);
+        % paramHash_model = string(DataHash(paramsJSON_model,'SHA-256'));
+        paramHash_model = paramHash;
         if single_patient_testing
-            parameters_model.patient_sel = patient_sel;
+            paramHash_model = strcat(paramHash_model,string(patient_sel));
         end
-        paramsJSON_model  = jsonencode_sorted(parameters_model);
-        paramHash_model = string(DataHash(paramsJSON_model,'SHA-256'));
 
         % TRAIN MODEL
         model_dataset.fwindows_train_block = fwindows_train_block;
@@ -351,6 +355,7 @@ if run_flag
         model_info.paramHash_model = paramHash_model;
         model_info.load_path = load_path;
         model_info.delete_model = delete_model;
+        training_start = tic;
         switch model_type
             case "lrm"
                 test_probs = train_lrm(model_dataset,model_info,parameters,iter);
@@ -361,6 +366,7 @@ if run_flag
             case "nn-cnn1d"
                 test_probs = train_nn_cnn1d(model_dataset,model_info,parameters,iter);
         end
+        t_training(patient_sel) = toc(training_start);
 
         % Get window-level probabilities
         [~,Yhat_test_vec] = max(test_probs{iter},[],2);
@@ -431,6 +437,7 @@ if run_flag
     metrics_add.pat.spec = pat_spec;
     metrics_add.pat.sens = pat_sens;
     metrics_add.pat.accy = pat_accy;
+    metrics_add.t_training = t_training;
 
     % Write to database
     switch save_data.priority

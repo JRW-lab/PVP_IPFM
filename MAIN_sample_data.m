@@ -4,7 +4,7 @@
 % 
 % Coded 6/9/2025, JRW
 %% Load data and startup
-clear; clc; close all;
+% clear; clc; close all;
 
 % Describe needed paths
 addpath(fullfile(pwd, '\Functions'));
@@ -12,7 +12,7 @@ data_path = "Data";
 figures_path = "Figures";
 
 % Controls
-profile_sel = 4;
+profile_sel = 1;
 line_val = 2;
 mark_val = 10;
 font_val = 16;
@@ -163,6 +163,7 @@ for i = 1:height(lookup_table)
     end
 end
 
+
 % Generate time-windows from data
 fprintf("Generating time-windows from data...\n")
 twindows_null = cellfun(@(x) make_twindows(x,fs,window_duration,t_shift*fs),data_null,"UniformOutput",false);
@@ -170,8 +171,8 @@ twindows_hypo = cellfun(@(x) make_twindows(x,fs,window_duration,t_shift*fs),data
 
 % Generate freq-windows from data
 fprintf("Generating frequency-windows from data...\n")
-fwindows_null = cellfun(@(x) fft_rhys(x,fs,frequency_limit,window_duration),twindows_null,'UniformOutput',false);
-fwindows_hypo = cellfun(@(x) fft_rhys(x,fs,frequency_limit,window_duration),twindows_hypo,'UniformOutput',false);
+fwindows_null = cellfun(@(x) fft_rhys(x,fs,frequency_limit,window_duration,"mag"),twindows_null,'UniformOutput',false);
+fwindows_hypo = cellfun(@(x) fft_rhys(x,fs,frequency_limit,window_duration,"mag"),twindows_hypo,'UniformOutput',false);
 
 %% Power Spectral Density
 
@@ -180,28 +181,30 @@ f_range = 0:1/window_duration:frequency_limit-1/window_duration;
 
 % Set figure info
 xlim_vec_psd = [0 5];
-ylim_vec_psd = [-30 0];
+ylim_vec_psd = [-25 0];
 
 % Set up figure
 figure(1)
 hold on
 
 for k = 1:2
+% k = 2;
 
     % Select null/alternative hypothesis
     switch k
         case 1
             linecolor = "#da1e28";
-            windows = fwindows_null(:,1);
+            windows = fwindows_null(:,3);
         case 2
             linecolor = "#0f62fe";
-            windows = fwindows_hypo(:,1);
+            windows = fwindows_hypo(:,3);
     end
 
     % Create new frequency-separated samples
-    block = vertcat(windows{:}).^2;
+    block = abs(vertcat(windows{:})).^2;
     psd = (sum(block,1) / size(block,1));
     plot(f_range,10*log10(psd),Color=linecolor,linewidth=line_val,LineStyle="-")
+    % plot(f_range,10*log10(psd),Color=linecolor,linewidth=line_val,LineStyle="--")
 
 end
 
@@ -468,6 +471,103 @@ xlabel("Sample from Z")
 ylabel("Dist. between Empirical CDFs")
 legend("Raw-PVP","IPFM-PVP","IPFM-HB",Location="northwest")
 
+%% KS Two-sample Test on Signal
+
+% KS Settings
+f_range = 0:1/window_duration:frequency_limit-1/window_duration;
+
+% Set up figure
+figure(4)
+hold on
+
+p_vals = cell(length(signal_sel),1);
+ks_test_stat = cell(length(signal_sel),1);
+log_p_vals = cell(length(signal_sel),1);
+log_ks_test = cell(length(signal_sel),1);
+mv_ks_tests = cell(1,length(signal_sel));
+for j = 1:length(signal_sel)
+
+    % Select data for each window
+    switch j
+        case 1
+            linecolor = "#da1e28";
+            linestyle = "-";
+            linemarker = "o";
+        case 2
+            linecolor = "#0f62fe";
+            linestyle = "-";
+            linemarker = "^";
+        case 3
+            linecolor = "#198038";
+            linestyle = "-";
+            linemarker = "*";
+    end
+
+    % Create new frequency-separated samples
+    resu_block = cell2mat(fwindows_null(:,1));
+    hypo_block = cell2mat(fwindows_null(:,3));
+    resu_samps = mat2cell(resu_block, size(resu_block,1), ones(1,size(resu_block,2)));
+    hypo_samps = mat2cell(hypo_block, size(hypo_block,1), ones(1,size(hypo_block,2)));
+
+    % Generate two-sample multivariate KS test statistic
+    mv_ks_tests{j} = mv_kstest2(resu_block,hypo_block);
+
+    % Test the samples using KS two-sample test
+    [~,p_vals{j},ks_test_stat{j}] = cellfun(@(x,y) kstest2(x,y), resu_samps, hypo_samps);
+    log_p_vals{j} = log10(p_vals{j});
+    log_ks_test{j} = (ks_test_stat{j});
+    log_p_vals{j} = max(log_p_vals{j},-400);
+
+    % Plot result of KS test
+    plot(f_range, log_ks_test{j}, Color=linecolor,LineStyle=linestyle,LineWidth=line_val);
+
+    1;
+
+end
+
+% Finish Univariate KS figure setup
+grid on
+xlabel("Frequency (Hz)")
+ylabel("Dist. between Empirical CDFs")
+set(gca, 'FontSize', font_val);
+legend("Raw-PVP","IPFM-PVP","IPFM-HB",Location="northeast")
+
+clc
+% Display results for multivariate KS test
+figure(20)
+hold on
+grid on
+mv_ks_vals = zeros(length(signal_sel),1);
+for i = 1:length(signal_sel)
+
+    % Select data for each window
+    switch i
+        case 1
+            linecolor = "#da1e28";
+            linestyle = "-";
+            linemarker = "o";
+        case 2
+            linecolor = "#0f62fe";
+            linestyle = "-";
+            linemarker = "^";
+        case 3
+            linecolor = "#198038";
+            linestyle = "-";
+            linemarker = "*";
+    end
+
+    plot(mv_ks_tests{i}, Color=linecolor,LineStyle=linestyle,LineWidth=line_val)
+
+    mv_ks_vals(i) = max(mv_ks_tests{i});
+    fprintf("Two-Sample Multivariate KS Test Statistic for %s: %.4f\n",signal_sel(i),mv_ks_vals(i))
+end
+% plot([size(resu_block,1) size(resu_block,1)], [10000 10000])
+set(gca, 'YScale', 'log')
+xlabel("Sample from Z")
+ylabel("Dist. between Empirical CDFs")
+legend("Raw-PVP","IPFM-PVP","IPFM-HB",Location="northwest")
+
+%%
 
 
 

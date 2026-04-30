@@ -192,13 +192,15 @@ for primvar_sel = 1:prvr_len
         end
 
         % Remove redundancy
-
         if result_parameters.pca_method == "none"
             result_parameters = rmfield(result_parameters,"pca_sigma_threshold");
         else
             if result_parameters.data_centering
                 result_parameters.data_centering = false;
             end
+        end
+        if result_parameters.training_type == "patient"
+            result_parameters.randomize_training = false;
         end
 
         % Generate result hash

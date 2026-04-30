@@ -40,6 +40,7 @@ for sel = 1:length(line_configs)
     % Select data to extract
     results_inst = jsondecode(sim_result.metrics{1});
     results_vec{sel} = results_inst.(level_view).(data_type);
+    % results_vec{sel} = results_inst.t_training;
     conmat_tables{sel} = results_inst.(level_view).conmat;
 
     % Normalize confusion matrices
@@ -62,3 +63,5 @@ for i = 1:numel(conmat_tables)
     fprintf('Confusion Matrix %d:\n', i);
     disp(conmat_tables{i});
 end
+
+1;

@@ -7,9 +7,9 @@ end
 switch type
     case "mag"
         fwindows = abs(fft(twindows)) / fs;
-        fwindows = fwindows(1:(f0*Twin),:).';
+        fwindows = fwindows(1:ceil(f0*Twin),:).';
     case "all"
         fwindows = fft(twindows) / fs;
-        fwindows = fwindows(1:(f0*Twin),:).';
+        fwindows = fwindows(1:ceil(f0*Twin),:).';
         fwindows = [real(fwindows) imag(fwindows(:,2:end))];
 end

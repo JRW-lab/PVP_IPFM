@@ -102,6 +102,8 @@ switch primary_var
         xlabel_name = "Cutoff Frequency (Hz)";
     case "pca_sigma_threshold"
         xlabel_name = "Explained Variance Ratio Threshold";
+    case "drop_rho_below"
+        xlabel_name = "PCC Threshold";
     otherwise
         xlabel_name = primary_var;
 end
@@ -119,25 +121,25 @@ for i = 1:size(results_mean,2)
         MarkerSize=mark_val)
 end
 
-% Give bounding boxes
-for i = 1:size(results_mean,2)
-
-    x_fill = [primary_vals,fliplr(primary_vals)];
-    y_fill = [results_min(:,i).', fliplr(results_max(:,i).')];
-
-    % Convert hex color string to RGB
-    baseColorHex = char(line_colors{i}); % this is a cell string, e.g., "#336699"
-    baseRGB = sscanf(baseColorHex(2:end), '%2x%2x%2x', [1 3]) / 255;
-
-    % Lighten the color by blending toward white
-    lightenFactor = 0.5;                              % 0 = original, 1 = white
-    lightRGB = baseRGB + (1 - baseRGB) * lightenFactor;
-
-    % Plot the fill (lighter color)
-    fill(x_fill, y_fill, lightRGB, ...
-        'FaceAlpha', 0.2, 'EdgeColor', 'none');
-
-end
+% % Give bounding boxes
+% for i = 1:size(results_mean,2)
+% 
+%     x_fill = [primary_vals,fliplr(primary_vals)];
+%     y_fill = [results_min(:,i).', fliplr(results_max(:,i).')];
+% 
+%     % Convert hex color string to RGB
+%     baseColorHex = char(line_colors{i}); % this is a cell string, e.g., "#336699"
+%     baseRGB = sscanf(baseColorHex(2:end), '%2x%2x%2x', [1 3]) / 255;
+% 
+%     % Lighten the color by blending toward white
+%     lightenFactor = 0.5;                              % 0 = original, 1 = white
+%     lightRGB = baseRGB + (1 - baseRGB) * lightenFactor;
+% 
+%     % Plot the fill (lighter color)
+%     fill(x_fill, y_fill, lightRGB, ...
+%         'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% 
+% end
 
 ylabel("Model Accuracy")
 grid on

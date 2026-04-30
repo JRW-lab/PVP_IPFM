@@ -13,6 +13,7 @@ loc = figure_data.legend_loc;
 xlim_vec = figure_data.xlim_vec;
 ylim_vec = figure_data.ylim_vec;
 marker_space = linspace(0,max(xlim_vec),marker_count);
+bootstrap_num = 1000;
 
 % Import parameters
 data_type = figure_data.data_type;
@@ -38,6 +39,9 @@ if ~exist(subsubfolder, 'dir')
 end
 
 % Plot figure
+auc_bootsamps = zeros(bootstrap_num,length(line_configs));
+AUC = zeros(length(line_configs),1);
+CI = zeros(length(line_configs),2);
 for i = 1:length(line_configs)
 
     % Load model and data
@@ -120,6 +124,49 @@ for i = 1:length(line_configs)
             MarkerSize=mark_val, ...
             MarkerIndices=marker_indices)
 
+        % Gather bootstrap data for confidence interval of AUC
+        n = length(true_labels);
+        for j = 1:bootstrap_num
+            idx = randsample(n,n,true);
+
+            yb = true_labels(idx);
+            pb = probs_all(idx,2);
+
+            [~,~,~,auc_bootsamps(j,i)] = perfcurve(yb,pb,1);
+        end
+
+        % Compute AUC and CI
+        AUC(i) = trapz(X,Y);
+        CI(i,:) = prctile(auc_bootsamps(:,i),[2.5 97.5]);
+
+        % Get calibration plot
+        pts = 11;
+        edges = linspace(0,1,pts);
+        [~,~,bin] = histcounts(probs_all(:,2),edges);
+
+        pred = zeros(pts-1,1);
+        obs = zeros(pts-1,1);
+        for j=1:pts-1
+            idx = bin==j;
+            pred(j) = mean(probs_all(idx,2));
+            obs(j) = mean(true_labels(idx));
+        end
+        figure(2)
+        if i == 1
+            hold on
+        end
+        plot(pred(~isnan(pred)),obs(~isnan(obs)), ...
+            line_styles{i}, ...
+            Color=line_colors{i}, ...
+            LineWidth=line_val, ...
+            MarkerSize=mark_val)
+        % plot([0 1],[0 1],'k--');
+
+        if i == 3
+            1;
+        end
+
+
     end
 
 end
@@ -127,10 +174,12 @@ end
 % % Add a line for the random estimator
 % plot([0 1],[0 1], "-.",LineWidth=line_val,Color="#4589ff")
 
+% Show ROC figure
 if size(probs_all,2) == 2
 
     % Set figure settings
-    plot([0 1], [0 1], "--k",LineWidth=line_val)
+    figure(1)
+    % plot([0 1], [0 1], "--k",LineWidth=line_val)
     xlabel(xlabel_name)
     xlim(xlim_vec)
     ylabel(ylabel_name)
@@ -148,4 +197,67 @@ if size(probs_all,2) == 2
     if save_sel
         saveas(figure(1), figure_filename);
     end
+
+    % Set figure settings
+    figure(2)
+    xlabel('Predicted Probability');
+    ylabel('Observed Frequency');
+    xlim([0 1])
+    ylim([0 1])
+    grid on
+    legend_ext = legend_vec;
+    legend_ext{end+1} = "Ideal Est.";
+    plot([0 1], [0 1], "--k",LineWidth=line_val)
+    legend(legend_ext,Location=loc);
+    set(gca, 'FontSize', font_val);
+    set(gca, 'Box', 'on');
+    set(gca, 'LineWidth', line_val);
+
+    % Save figure
+    timestamp = datetime('now', 'Format', 'yyyyMMdd_HHmmss');
+    timestamp_str = char(timestamp);
+    figure_filename = fullfile(subsubfolder, "Figure_" + timestamp_str + ".png");
+    if save_sel
+        saveas(figure(2), figure_filename);
+    end
+
 end
+
+% Create AUC/CI results table
+data_table = struct2table([line_configs{:}]);
+data_table.AUC = AUC;
+data_table.CI_lower = CI(:,1);
+data_table.CI_upper = CI(:,2);
+
+% Display table
+disp(data_table)
+
+1;
+
+%% SIGNIFICANCE TESTS ACROSS MODELS
+% Compare two AUCs statistically.
+% 
+% Example:
+% 
+% Model A AUC = 0.84
+% Model B AUC = 0.79
+% p = 0.03
+% 
+% Then improvement is statistically significant.
+% 
+% If MATLAB lacks built-in DeLong
+% 
+% Use:
+% 
+% Option A: Bootstrap difference test
+% 
+% Compute:
+% 
+% AUC_A - AUC_B
+% 
+% across 1000 bootstrap samples.
+% 
+% If CI excludes zero → significant.
+
+%% CALIBRATION PLOT
+

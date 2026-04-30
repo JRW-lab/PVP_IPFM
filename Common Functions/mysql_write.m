@@ -24,14 +24,20 @@ if ~isempty(sim_result) % Overwrite row in DB
 
         metric_inst = metric_fields{iField};
 
-        sub_fields = fieldnames(metrics_add.(metric_inst));
-        for jField = 1:numel(sub_fields)
+        if metric_inst ~= "t_training"
+            sub_fields = fieldnames(metrics_add.(metric_inst));
+            for jField = 1:numel(sub_fields)
 
-            sub_inst = sub_fields{jField};
+                sub_inst = sub_fields{jField};
 
-            % Weighted average
-            metrics.(metric_inst).(sub_inst) = ...
-                (old_metrics.(metric_inst).(sub_inst) * N_old + metrics_add.(metric_inst).(sub_inst) * new_frames) / N_total;
+                % Weighted average
+                metrics.(metric_inst).(sub_inst) = ...
+                    (old_metrics.(metric_inst).(sub_inst) * N_old + metrics_add.(metric_inst).(sub_inst) * new_frames) / N_total;
+            end
+        else
+
+            metrics.t_training = [old_metrics.t_training, metrics_add.t_training];
+
         end
     end
 
